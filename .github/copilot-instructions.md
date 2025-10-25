@@ -4,7 +4,7 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 
 ## Active Technologies
 
-- .NET 8 (backend), Node.js 18+ (frontend React) (002-project-setup)
+- .NET 8 (backend), Node.js 22 LTS (frontend React with TypeScript only) (002-project-setup)
 
 ## Project Structure
 

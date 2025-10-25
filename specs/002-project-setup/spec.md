@@ -152,13 +152,16 @@ New team members need clear documentation and a straightforward process to get t
 - Q: Which Aspire template should be used for FR-001 scaffolding? → A: `dotnet new aspire` (Aspire Empty App from Aspire.ProjectTemplates). This template creates AppHost, API service, and ServiceDefaults without extraneous UI frameworks, providing a clean foundation for adding React.
 - Q: How should React integrate with Aspire orchestration? → A: React runs as a Node process via `AddNpmApp` in the Aspire AppHost. Aspire injects environment variables (e.g., `VITE_API_URL`) to allow React to discover and communicate with the .NET API. Both services appear unified in the Aspire dashboard with unified logging and tracing.
 - Q: What port strategy for local dev (API & React dev server)? → A: Fixed ports for local development. Choose conventional defaults (e.g., API on 5000, React dev server on 5173) with no fallback/retry logic if ports are already in use; developers must free the port or adjust configuration manually.
-- Q: How should developers initialize the project after cloning? → A: Automated setup script (setup.sh for macOS/Linux, setup.ps1 for Windows) that verifies prerequisites (.NET 8 SDK, Node.js 18+), restores .NET dependencies (`dotnet restore`), installs npm packages (`npm install`), and displays launch instructions for running Aspire AppHost.
+- Q: How should developers initialize the project after cloning? → A: Automated setup script (setup.sh for macOS/Linux, setup.ps1 for Windows) that verifies prerequisites (.NET 8 SDK, Node.js 22 LTS), restores .NET dependencies (`dotnet restore`), installs npm packages (`npm install`), and displays launch instructions for running Aspire AppHost.
 - Q: Production build & deployment strategy? → A: React and .NET API are deployed separately. React builds to static files (dist folder) deployed to CDN or static hosting; .NET API deployed independently to cloud/container platform. Local Aspire development is focused on integrated dev experience; production architecture is deferred to deployment/infrastructure spec.
+- **Enforcement Decision (2025-10-25)**: React frontend MUST be TypeScript-only (no JavaScript allowed). All source files in `frontend/src/` MUST have `.tsx` or `.ts` extensions. Test files MUST be `.test.tsx` or `.test.ts`. This ensures type safety and consistency across the codebase. Node.js 22 LTS is the minimum required version for all frontend development.
 
 ## Assumptions
 
 - .NET 8 SDK will be used as the target framework (latest stable at time of specification)
-- Node.js 18+ and npm/yarn are expected to be installed by developers (standard web development prerequisite)
+- Node.js 22 LTS is the required runtime for React frontend development (mandatory, not 18+)
+- React frontend MUST be TypeScript-only; no JavaScript (.js) files allowed in src/ directory
+- npm or yarn are expected to be installed by developers (standard with Node.js)
 - Local development will use Aspire for orchestration (not Docker Compose for local development, though Docker may be used later for deployment)
 - shadcn/ui will use React's default styling system (CSS/Tailwind as appropriate for the template)
 - The API will expose HTTP endpoints (not gRPC as primary protocol) for frontend consumption
