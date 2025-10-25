@@ -124,7 +124,7 @@
 All commits to `002-project-setup` branch must satisfy:
 
 1. **TypeScript Compilation**:
-   - ✅ `npx tsc --noEmit` passes in `frontend/` directory with zero errors
+   - ✅ `npx tsc --noEmit` passes in `src/frontend/` directory with zero errors
    - ✅ No `any` types in production code (except where explicitly needed; documented with `// @ts-ignore: <reason>`)
    - ✅ All React components typed with proper `React.FC` or function signatures
 
@@ -134,7 +134,7 @@ All commits to `002-project-setup` branch must satisfy:
    - ✅ `package.json` includes `"engines": { "node": "^22.0.0" }`
 
 3. **No JavaScript in Frontend**:
-   - ✅ `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero results
+   - ✅ `find src/frontend/src -name "*.js" -o -name "*.jsx"` returns zero results
    - ✅ All config files (webpack, vite.config, eslint.config) are `.ts` or `.cjs` (CommonJS for Node tooling)
    - ✅ README prominently warns: "React frontend must be 100% TypeScript; no .js files allowed"
 

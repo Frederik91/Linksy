@@ -33,7 +33,7 @@ Linksy.ServiceDefaults/       # Shared .NET defaults
 Linksy.Api/                   # REST API service (Minimal API pattern)
 Linksy.Api.Tests/             # Backend unit tests (xUnit)
 Linksy.AppHost/               # Aspire orchestration (frontend + backend)
-frontend/                     # React application (TypeScript only)
+src/frontend/                 # React application (TypeScript only)
   src/
     App.tsx                   # Root component
     main.tsx                  # Entry point
@@ -65,24 +65,24 @@ specs/002-project-setup/      # Feature specification & tasks
 ```bash
 dotnet build Linksy.sln       # Build .NET projects
 dotnet run --project Linksy.AppHost  # Start Aspire (orchestrates API + frontend)
-npm run dev --prefix ./frontend      # Frontend dev server (port 5173)
+npm run dev --prefix ./src/frontend      # Frontend dev server (port 5173)
 ```
 
 ### Testing
 ```bash
 dotnet test Linksy.Api.Tests         # Backend unit tests
-npm run test --prefix ./frontend     # Frontend unit tests (Vitest)
+npm run test --prefix ./src/frontend     # Frontend unit tests (Vitest)
 ```
 
 ### Linting & Formatting
 ```bash
-npm run lint --prefix ./frontend     # ESLint
-npm run preview --prefix ./frontend  # Vite preview
+npm run lint --prefix ./src/frontend     # ESLint
+npm run preview --prefix ./src/frontend  # Vite preview
 ```
 
 ### Production Build
 ```bash
-npm run build --prefix ./frontend    # Production React bundle
+npm run build --prefix ./src/frontend    # Production React bundle
 dotnet publish -c Release            # Publish API for production
 ```
 
@@ -96,7 +96,7 @@ dotnet publish -c Release            # Publish API for production
 ### Why React 19 + TypeScript?
 - React 19 has automatic JSX transform, new hooks, and improved developer experience
 - TypeScript strict mode enforced for type safety across entire frontend
-- No JavaScript files allowed in `frontend/src/` (TypeScript-only enforcement)
+- No JavaScript files allowed in `src/frontend/src/` (TypeScript-only enforcement)
 
 ### Why Aspire?
 - Unified orchestration dashboard for local development (no container setup needed)
@@ -125,7 +125,7 @@ dotnet publish -c Release            # Publish API for production
 ### Adding New Components
 - Use shadcn/ui for UI components
 - Keep all frontend code in TypeScript (`.tsx` only)
-- Add tests in `frontend/src/__tests__/` or alongside components as `.test.tsx`
+- Add tests in `src/frontend/src/__tests__/` or alongside components as `.test.tsx`
 
 ### Adding New API Endpoints
 - Use Minimal API pattern in `Linksy.Api/Program.cs`
@@ -134,9 +134,9 @@ dotnet publish -c Release            # Publish API for production
 
 ## Enforcement Rules
 
-1. **TypeScript-Only Frontend**: No `.js` or `.jsx` files in `frontend/src/`. Enforce via `find frontend/src -name "*.js" -o -name "*.jsx"` should return 0 files.
+1. **TypeScript-Only Frontend**: No `.js` or `.jsx` files in `src/frontend/src/`. Enforce via `find src/frontend/src -name "*.js" -o -name "*.jsx"` should return 0 files.
 
-2. **Strict TypeScript Mode**: `frontend/tsconfig.json` must have `"strict": true`. All frontend code must pass `tsc --noEmit` with zero errors.
+2. **Strict TypeScript Mode**: `src/frontend/tsconfig.json` must have `"strict": true`. All frontend code must pass `tsc --noEmit` with zero errors.
 
 3. **Node.js 22 LTS**: 
    - Required version specified in `scripts/setup.sh`, `package.json` ("engines": {"node": "^22.0.0"}), and `.nvmrc`

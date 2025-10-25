@@ -103,7 +103,7 @@ builder.Build().Run();
 1. Check for .NET 8 SDK → fail with install link if missing
 2. Check for Node.js 18+ → fail with install link if missing
 3. Run: dotnet restore
-4. Run: npm install --prefix ./frontend
+4. Run: npm install --prefix ./src/frontend
 5. Print: "Setup complete! Launch with: dotnet run --project Linksy.AppHost"
 ```
 
@@ -177,7 +177,7 @@ builder.Build().Run();
 
 ### Unit Tests
 - **Backend**: xUnit tests in `Linksy.Api.Tests/` project
-- **Frontend**: Vitest tests in `frontend/tests/` or co-located `*.test.tsx` files
+- **Frontend**: Vitest tests in `src/frontend/tests/` or co-located `*.test.tsx` files
 
 ### Integration Tests
 - **Backend**: Test API endpoints in isolation (HTTP requests to localhost:5000)

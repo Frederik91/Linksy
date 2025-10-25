@@ -61,7 +61,7 @@ echo ""
 
 # Install npm dependencies
 echo "Installing npm dependencies..."
-npm install --prefix ./frontend
+npm install --prefix ./src/frontend
 echo "✅ npm dependencies installed"
 echo ""
 

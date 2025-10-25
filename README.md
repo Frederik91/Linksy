@@ -92,7 +92,7 @@ Linksy/
 ├── Linksy.ServiceDefaults/            # Aspire service defaults
 │   └── Linksy.ServiceDefaults.csproj
 │
-├── frontend/                          # React + Vite frontend
+├── src/frontend/                          # React + Vite frontend (moved under src/)
 │   ├── src/
 │   │   ├── components/                # React components
 │   │   ├── lib/                       # Utility functions
@@ -133,14 +133,14 @@ app.MapGet("/api/users", () => new[] { "User 1", "User 2" })
 
 ### Frontend Development
 
-1. **Edit** files in `frontend/src/`
+1. **Edit** files in `src/frontend/src/`
 2. Vite's **Hot Module Replacement (HMR)** instantly reflects changes
 3. **Browser auto-refreshes** within 3 seconds
 
 Example: Creating a new component
 
 ```bash
-# frontend/src/components/MyComponent.tsx
+# src/frontend/src/components/MyComponent.tsx
 export default function MyComponent() {
   return <div>Hello from MyComponent</div>
 }
@@ -165,20 +165,20 @@ dotnet run --project Linksy.Api
 
 ```bash
 # Install new npm package
-npm install package-name --prefix ./frontend
+npm install package-name --prefix ./src/frontend
 
 # Run frontend in isolation
-npm run dev --prefix ./frontend
+npm run dev --prefix ./src/frontend
 
 # Build frontend for production
-npm run build --prefix ./frontend
+npm run build --prefix ./src/frontend
 
 # Run frontend tests
-npm run test --prefix ./frontend
+npm run test --prefix ./src/frontend
 
 # Lint and format
-npm run lint --prefix ./frontend
-npm run format:check --prefix ./frontend
+npm run lint --prefix ./src/frontend
+npm run format:check --prefix ./src/frontend
 ```
 
 ### Aspire Orchestration
@@ -210,7 +210,7 @@ taskkill /PID <PID> /F
 
 **Option B**: Change port in configuration
 - **API**: Edit `Linksy.AppHost/AppHost.cs` and modify port binding
-- **React**: Edit `frontend/vite.config.ts` and change `server.port`
+- **React**: Edit `src/frontend/vite.config.ts` and change `server.port`
 
 ### Node.js Version Mismatch
 
@@ -239,9 +239,9 @@ dotnet --version
 
 ```bash
 # Clean node_modules and reinstall
-rm -rf frontend/node_modules frontend/package-lock.json
-npm install --prefix ./frontend
-npm run dev --prefix ./frontend
+rm -rf src/frontend/node_modules src/frontend/package-lock.json
+npm install --prefix ./src/frontend
+npm run dev --prefix ./src/frontend
 ```
 
 ### API Connection Errors from React
@@ -298,13 +298,13 @@ npm run dev --prefix ./frontend
 
 ### Frontend
 
-Create `frontend/.env.local`:
+Create `src/frontend/.env.local`:
 
 ```bash
 VITE_API_URL=http://localhost:5000
 ```
 
-See `frontend/.env.example` for template.
+See `src/frontend/.env.example` for template.
 
 ### Backend
 

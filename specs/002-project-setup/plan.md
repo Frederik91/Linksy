@@ -121,7 +121,7 @@ Linksy/                                  # Root repository
 │   ├── Extensions.cs
 │   └── Linksy.ServiceDefaults.csproj
 │
-├── frontend/                           # React + Vite + TypeScript + shadcn/ui
+├── src/frontend/                       # React + Vite + TypeScript + shadcn/ui
 │   ├── src/
 │   │   ├── components/                 # shadcn/ui imported components
 │   │   ├── pages/

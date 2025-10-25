@@ -76,7 +76,7 @@ backend/
 │   └── api/
 └── tests/
 
-frontend/
+src/frontend/
 ├── src/
 │   ├── components/
 │   ├── pages/

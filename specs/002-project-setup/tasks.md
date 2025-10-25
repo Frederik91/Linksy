@@ -91,7 +91,7 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 - [x] T001 Initialize git repository and commit initial structure
 - [x] T002 [P] Create `.gitignore` file excluding .NET (bin, obj), Node.js (node_modules), and environment files (.env)
-- [x] T003 [P] Create project root directory structure: `Linksy.AppHost/`, `Linksy.Api/`, `Linksy.ServiceDefaults/`, `frontend/`, `scripts/`, `docs/`
+  - [x] T003 [P] Create project root directory structure: `Linksy.AppHost/`, `Linksy.Api/`, `Linksy.ServiceDefaults/`, `src/frontend/`, `scripts/`, `docs/`
 - [x] T004 [P] Install `Aspire.ProjectTemplates` NuGet package via `dotnet new install Aspire.ProjectTemplates`
 - [x] T005 Scaffold Aspire project using `dotnet new aspire --output ./` in repository root
 - [x] T006 [P] Verify scaffolded structure: Linksy.AppHost, Linksy.Api, Linksy.ServiceDefaults, Linksy.sln exist
@@ -128,31 +128,31 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 **Goal**: Initialize React 19+ project with TypeScript, Vite, shadcn/ui, and Tailwind CSS; configure environment variables for API communication.
 
 **Independent Test Criteria**:
-- Frontend builds successfully: `npm run build --prefix ./frontend` returns exit code 0
-- React dev server starts: `npm run dev --prefix ./frontend` launches on port 5173
+- Frontend builds successfully: `npm run build --prefix ./src/frontend` returns exit code 0
+- React dev server starts: `npm run dev --prefix ./src/frontend` launches on port 5173
 - TypeScript compilation passes: `npx tsc --noEmit` returns zero errors
 - shadcn/ui components importable and renderable
 - Tailwind CSS 4+ configured and working
 - HMR enabled: code changes reflect within 3 seconds
-- No `.js` files in `frontend/src/` (TypeScript-only)
+ - No `.js` files in `src/frontend/src/` (TypeScript-only)
 - Environment variables (`VITE_API_URL`) accessible in code
 
 ### Tasks
 
-- [x] T015 Create `frontend/` directory structure with `src/`, `public/`, `dist/` (placeholder), `tests/` folders
-- [x] T016 Create `frontend/package.json` with React 19+, Vite 5+, TypeScript 5+, shadcn/ui, Tailwind CSS 4+, Vitest, React Testing Library dependencies
-- [x] T017 [P] Create `frontend/tsconfig.json` with TypeScript strict mode enabled, React 19 JSX transform configuration
-- [x] T018 [P] Create `frontend/vite.config.ts` configuring dev server (port 5173), React plugin, TypeScript support, environment variable handling
-- [x] T019 [P] Create `frontend/src/main.tsx` entry point importing React, rendering App component, importing Tailwind CSS
-- [x] T020 [P] Create `frontend/src/App.tsx` as root component with TypeScript interface; demonstrates shadcn/ui Button component import
-- [x] T021 [P] Create `frontend/src/index.css` with Tailwind CSS 4+ base styles and shadcn/ui component styles
-- [x] T022 [P] Create `frontend/.env.example` with `VITE_API_URL=http://localhost:5000` template
-- [x] T023 [P] Configure shadcn/ui in `frontend/` using `npx shadcn-ui@latest init` (components.json, tsconfig.paths)
-- [x] T024 [P] Create sample shadcn/ui components folder `frontend/src/components/ui/` with Button component imported via shadcn
-- [x] T025 [P] Create `frontend/src/components/App.test.tsx` demonstrating Vitest + React Testing Library setup with TypeScript
-- [x] T026 [US3] Verify frontend builds and runs: `npm run build --prefix ./frontend` and `npm run dev --prefix ./frontend` complete successfully
-- [x] T027 [P] [US3] Verify no JavaScript files in `frontend/src/`: `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero results
-- [x] T028 [P] [US3] Verify TypeScript compilation: `npx tsc --noEmit --project frontend/tsconfig.json` returns zero errors
+  - [x] T015 Create `src/frontend/` directory structure with `src/`, `public/`, `dist/` (placeholder), `tests/` folders
+  - [x] T016 Create `src/frontend/package.json` with React 19+, Vite 5+, TypeScript 5+, shadcn/ui, Tailwind CSS 4+, Vitest, React Testing Library dependencies
+  - [x] T017 [P] Create `src/frontend/tsconfig.json` with TypeScript strict mode enabled, React 19 JSX transform configuration
+  - [x] T018 [P] Create `src/frontend/vite.config.ts` configuring dev server (port 5173), React plugin, TypeScript support, environment variable handling
+  - [x] T019 [P] Create `src/frontend/src/main.tsx` entry point importing React, rendering App component, importing Tailwind CSS
+  - [x] T020 [P] Create `src/frontend/src/App.tsx` as root component with TypeScript interface; demonstrates shadcn/ui Button component import
+  - [x] T021 [P] Create `src/frontend/src/index.css` with Tailwind CSS 4+ base styles and shadcn/ui component styles
+  - [x] T022 [P] Create `src/frontend/.env.example` with `VITE_API_URL=http://localhost:5000` template
+  - [x] T023 [P] Configure shadcn/ui in `src/frontend/` using `npx shadcn-ui@latest init` (components.json, tsconfig.paths)
+  - [x] T024 [P] Create sample shadcn/ui components folder `src/frontend/src/components/ui/` with Button component imported via shadcn
+  - [x] T025 [P] Create `src/frontend/src/components/App.test.tsx` demonstrating Vitest + React Testing Library setup with TypeScript
+  - [x] T026 [US3] Verify frontend builds and runs: `npm run build --prefix ./src/frontend` and `npm run dev --prefix ./src/frontend` complete successfully
+  - [x] T027 [P] [US3] Verify no JavaScript files in `src/frontend/src/`: `find src/frontend/src -name "*.js" -o -name "*.jsx"` returns zero results
+  - [x] T028 [P] [US3] Verify TypeScript compilation: `npx tsc --noEmit --project src/frontend/tsconfig.json` returns zero errors
 
 ---
 
@@ -172,7 +172,7 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 ### Tasks
 
 - [x] T029 [US4] Configure `Linksy.AppHost/Program.cs` to register .NET API via `AddProject<Projects.Linksy_Api>("api")`
-- [x] T030 [US4] Configure `Linksy.AppHost/Program.cs` to register React frontend via `AddNpmApp("frontend", "../frontend")`
+  - [x] T030 [US4] Configure `Linksy.AppHost/Program.cs` to register React frontend via `AddNpmApp("frontend", "../frontend")`
 - [x] T031 [US4] Add service reference from React to API: React `WithReference(api)` and inject environment variable `WithEnvironment("VITE_API_URL", api.GetEndpoint("http"))`
 - [x] T032 [P] [US4] Add startup ordering: React waits for API via `.WaitFor(api)` ensuring API health check passes before React starts
 - [x] T033 Verify Aspire orchestration: `dotnet run --project Linksy.AppHost` starts both services with Aspire Dashboard accessible at http://localhost:18888
@@ -194,7 +194,7 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [x] T034 [P] Create `scripts/setup.sh` (macOS/Linux) checking for .NET 8 SDK, Node.js 22+, running `dotnet restore` and `npm install --prefix ./frontend`
+  - [x] T034 [P] Create `scripts/setup.sh` (macOS/Linux) checking for .NET 8 SDK, Node.js 22+, running `dotnet restore` and `npm install --prefix ./src/frontend`
 - [x] T035 [P] Create `scripts/setup.ps1` (Windows PowerShell) with same checks and commands as setup.sh, adapted for PowerShell syntax
 - [x] T036 [P] Create `scripts/verify-prereqs.sh` standalone prerequisite verification script for CI/automated testing
 - [x] T037 Create `README.md` with project overview, architecture diagram, prerequisites, setup instructions, troubleshooting (top 5 common issues), useful commands
@@ -216,7 +216,7 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 - All 5 user stories (US1-US5) independently testable
 - Constitution v1.2.0 principles verified (I-V)
 - TypeScript strict mode enabled, zero compilation errors
-- No JavaScript files in `frontend/src/`
+ - No JavaScript files in `src/frontend/src/`
 - Node.js 22 LTS requirement enforced in setup scripts and package.json
 - Backend builds and tests pass
 - Frontend builds and tests pass
@@ -237,9 +237,9 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 - [x] T053 [P] Validate Constitution Principle V (Observable): Aspire Dashboard unified logs working
 - [x] T054 [P] Validate TypeScript compilation: `npx tsc --noEmit` returns zero errors
 - [x] T055 [P] Validate Node.js 22 enforcement: `setup.sh` accepts Node.js 22+; package.json specifies `"engines": {"node": "^22.0.0"}`
-- [x] T056 [P] Validate no JavaScript in frontend: `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero
+  - [x] T056 [P] Validate no JavaScript in frontend: `find src/frontend/src -name "*.js" -o -name "*.jsx"` returns zero
 - [x] T057 Run backend tests: `dotnet test Linksy.Api.Tests` passes all health check tests ✅
-- [x] T058 Run frontend tests: `npm run test --prefix ./frontend` passes initial Vitest setup tests ✅
+- [x] T058 Run frontend tests: `npm run test --prefix ./src/frontend` passes initial Vitest setup tests ✅
 - [x] T059 Manual smoke test: Full stack integration (Aspire starts, both services running, React communicates with API)
 
 ---
@@ -338,7 +338,7 @@ Before marking the feature as complete, verify:
 - [ ] All 5 user stories (US1-US5) independently testable
 - [ ] Constitution v1.2.0 principles satisfied (I, III, V certified; II, IV deferred)
 - [ ] TypeScript strict mode enabled, zero compilation errors
-- [ ] No JavaScript files in `frontend/src/`
+- [ ] No JavaScript files in `src/frontend/src/`
 - [ ] Node.js 22 LTS enforced in setup scripts
 - [ ] Backend tests passing (xUnit)
 - [ ] Frontend tests passing (Vitest)

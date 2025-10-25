@@ -1,8 +1,6 @@
 import { Button } from '@/components/ui/button';
 
-interface AppProps {}
-
-export default function App({}: AppProps) {
+export default function App() {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleFetchInfo = async () => {

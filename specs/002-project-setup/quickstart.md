@@ -54,7 +54,7 @@ The script will:
 - ✅ Verify .NET 8 SDK is installed
 - ✅ Verify Node.js 18+ is installed
 - ✅ Run `dotnet restore` to restore .NET dependencies
-- ✅ Run `npm install` in the frontend folder to install React dependencies
+   - ✅ Run `npm install` in the src/frontend folder to install React dependencies
 - ✅ Print launch instructions
 
 ---
@@ -104,7 +104,7 @@ Expected response: `200 OK` with health data.
 Edit files in `Linksy.Api/` folder. The .NET runtime will detect changes and recompile.
 
 ### Making Frontend Changes
-Edit files in `frontend/src/` folder. Vite's Hot Module Replacement (HMR) will refresh the browser automatically within 3 seconds.
+Edit files in `src/frontend/src/` folder. Vite's Hot Module Replacement (HMR) will refresh the browser automatically within 3 seconds.
 
 ### Accessing the API from React
 The React frontend automatically receives `VITE_API_URL` environment variable pointing to the API. Use it like:
@@ -130,7 +130,7 @@ kill -9 <PID>
 
 **Option B**: Change the port in configuration
 - **API**: Edit `Linksy.AppHost/Program.cs` and change the port binding
-- **React**: Edit `frontend/vite.config.ts` and change `server.port`
+- **React**: Edit `src/frontend/vite.config.ts` and change `server.port`
 
 ### Setup Script Fails with "Node.js not found"
 Install Node.js 18+ from https://nodejs.org/ and rerun the setup script.
@@ -155,7 +155,7 @@ Ensure the `.NET API` is running (check Aspire dashboard). If API crashed:
 ## Next Steps
 
 1. **Backend API**: Explore the `.NET 8 Minimal API` in `Linksy.Api/Program.cs`. Add your first endpoint.
-2. **Frontend UI**: Import shadcn/ui components in React. See `frontend/src/components/`.
+2. **Frontend UI**: Import shadcn/ui components in React. See `src/frontend/src/components/`.
 3. **Database** (future): Phase 2 will add PostgreSQL for data persistence.
 
 ---
@@ -172,15 +172,15 @@ Open Aspire Dashboard at http://localhost:18888 and click on each service for lo
 ```bash
 dotnet clean
 dotnet restore
-npm install --prefix ./frontend
+npm install --prefix ./src/frontend
 dotnet run --project Linksy.AppHost
 ```
 
 ### Production Build (Frontend Only)
 ```bash
-npm run build --prefix ./frontend
+npm run build --prefix ./src/frontend
 ```
-Output is in `frontend/dist/` and ready to deploy to a CDN.
+Output is in `src/frontend/dist/` and ready to deploy to a CDN.
 
 ---
 

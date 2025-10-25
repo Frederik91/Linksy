@@ -76,7 +76,7 @@ Write-Host ""
 
 # Install npm dependencies
 Write-Host "Installing npm dependencies..." -ForegroundColor Yellow
-npm install --prefix ./frontend
+npm install --prefix ./src/frontend
 Write-Host "✅ npm dependencies installed" -ForegroundColor Green
 Write-Host ""
 
