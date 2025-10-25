@@ -1,19 +1,14 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddLogging(loggingBuilder =>
-{
-    loggingBuilder.AddConsole();
-    loggingBuilder.AddDebug();
-});
+// Add service defaults & Aspire client integrations.
+builder.AddServiceDefaults();
 
-builder.Services.AddHealthChecks();
+// Add services to the container.
+builder.Services.AddProblemDetails();
+builder.Services.AddOpenApi();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("local-dev", policy =>
@@ -27,38 +22,27 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-app.UseRouting();
+// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
 app.UseCors("local-dev");
 
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Linksy API starting up");
-
-// Health check endpoint
-app.MapHealthChecks("/health", new HealthCheckOptions
+if (app.Environment.IsDevelopment())
 {
-    ResponseWriter = async (context, report) =>
-    {
-        context.Response.ContentType = "application/json";
-        var response = new
-        {
-            status = report.Status.ToString(),
-            checks = report.Entries.ToDictionary(x => x.Key, x => x.Value.Status.ToString()),
-            timestamp = DateTime.UtcNow
-        };
-        await context.Response.WriteAsJsonAsync(response);
-    }
-});
+    app.MapOpenApi();
+}
 
-// Sample API endpoint
+// Sample API endpoints
 app.MapGet("/api/info", () => new
 {
     application = "Linksy API",
     version = "0.1.0",
+    environment = app.Environment.EnvironmentName,
     timestamp = DateTime.UtcNow
 })
 .WithName("GetInfo")
 .WithOpenApi()
 .Produces(StatusCodes.Status200OK);
+
+app.MapDefaultEndpoints();
 
 app.Run();
