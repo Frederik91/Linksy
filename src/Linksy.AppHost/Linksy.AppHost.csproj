@@ -14,10 +14,12 @@
     <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.1" />
     <PackageReference Include="Aspire.Hosting" Version="9.5.1" />
     <PackageReference Include="Aspire.Hosting.NodeJs" Version="9.5.1" />
+    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="9.5.1-preview.1.25502.11" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Linksy.Api\Linksy.Api.csproj" />
+    <ProjectReference Include="..\Linksy.Sync\Linksy.Sync.csproj" />
   </ItemGroup>
 
 </Project>

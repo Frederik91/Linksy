@@ -1,0 +1,19 @@
+# Azurite emulator artifacts
+__blobstorage__/
+__queuestorage__/
+__azurite_db*__
+
+# Bike shedding
+**/bin
+**/obj
+**/.vs
+**/.vscode
+**/packages
+*.user
+*.suo
+*.cache
+*.docstates
+.DS_Store
+
+# Local settings (sensitive data)
+local.settings.json

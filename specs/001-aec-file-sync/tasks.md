@@ -18,15 +18,18 @@ This document breaks down the Linksy feature into granular, executable work item
 
 ### Infrastructure & Project Initialization (5 tasks)
 
-- [ ] **T001** `[P1]` `[infra]` Initialize Linksy.Sync project for Durable Functions
+- [x] **T001** `[P1]` `[infra]` Initialize Linksy.Sync project for Durable Functions
   - File: `src/Linksy.Sync/Linksy.Sync.csproj`
   - Create .NET 9 class library with Azure.Functions.Worker.Extensions.DurableTask
   - **Effort**: 0.5 day
+  - **Completed**: 2025-10-25
 
-- [ ] **T002** `[P1]` `[infra]` Configure Azure Functions local development environment
+- [x] **T002** `[P1]` `[infra]` Configure Azure Functions local development environment
   - Files: `src/Linksy.Api/Program.cs`, `src/Linksy.Sync/Program.cs`, `local.settings.json`
   - Install Azure Functions Core Tools; configure Aspire orchestration
   - **Effort**: 1 day
+  - **Completed**: 2025-10-25
+  - **Summary**: Created local.settings.json, host.json, and Program.cs for Linksy.Sync; Updated Linksy.AppHost to use AddAzureFunctionsProject with Aspire orchestration; Configured Azure Storage emulator integration
 
 - [ ] **T003** `[P1]` `[infra]` Add Bicep IaC templates for Azure infrastructure (Dev/Prod)
   - Files: `infra/main.bicep`, `infra/parameters.dev.json`, `infra/parameters.prod.json`
