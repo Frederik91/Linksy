@@ -102,7 +102,7 @@ New team members need clear documentation and a straightforward process to get t
 
 - What happens if a developer clones the project but doesn't have .NET 8 SDK installed? (System should fail with clear message directing them to install prerequisites)
 - What happens if Node.js/npm is not installed for the React project? (Similar clear error messaging)
-- What happens if port 5000 (or configured API port) is already in use? (Aspire or user documentation should specify how to configure alternate ports)
+- What happens if port 5000 (API) or 5173 (React dev server) is already in use? (Developer must manually free the port or update AppHost/vite.config.ts to use different ports)
 - What happens if a developer modifies package.json or .csproj dependencies during development? (Dependencies should be recoverable and clearly documented)
 
 ## Requirements *(mandatory)*
@@ -114,16 +114,16 @@ New team members need clear documentation and a straightforward process to get t
 
 ### Functional Requirements
 
-- **FR-001**: System MUST initialize the project using the Aspire starter app template (via Aspire.ProjectTemplates or equivalent). The Aspire starter app will scaffold a .NET API project and a Blazor app; after scaffolding, the Blazor app will be removed and replaced by a React application (Vite + shadcn/ui) while preserving the generated API. This step bootstraps the core service(s) and project layout used by subsequent setup tasks.
-- **FR-002**: System MUST configure Aspire as the orchestration host that manages both the API and frontend services during local development
-- **FR-003**: System MUST initialize a React project using Vite as the build tool and module bundler
+- **FR-001**: System MUST initialize the project using the Aspire Empty App template via `dotnet new aspire` (from Aspire.ProjectTemplates). This command scaffolds the AppHost, a .NET API service, and ServiceDefaults—all foundational Aspire components without extraneous frameworks. This setup provides the base orchestration layer and API skeleton.
+- **FR-002**: System MUST configure Aspire as the orchestration host that manages both the API and frontend services during local development. The Aspire AppHost will use `AddProject` for the .NET API and `AddNpmApp` for the React frontend, establishing service references and injecting environment variables (e.g., `VITE_API_URL`) for cross-service communication.
+- **FR-003**: System MUST initialize a React project using Vite as the build tool and module bundler. The React app runs as a Node process managed by Aspire's `AddNpmApp`, receiving injected environment variables for API endpoint discovery.
 - **FR-004**: System MUST install and configure shadcn/ui component library in the React project with full styling support
-- **FR-005**: System MUST configure the .NET API to register with Aspire's service discovery so the frontend can discover and communicate with it
-- **FR-006**: System MUST configure React development server to work seamlessly within Aspire orchestration
+- **FR-005**: System MUST configure the .NET API to register with Aspire's service discovery so the frontend can discover and communicate with it via environment variables injected by the AppHost
+- **FR-006**: System MUST configure React development server to work seamlessly within Aspire orchestration by accepting injected environment variables (VITE_API_URL, etc.) and reading them at build/runtime to communicate with the API service
 - **FR-007**: System MUST include Hot Module Replacement (HMR) for React development with fast refresh capabilities
 - **FR-008**: System MUST include proper project structure with conventional folders (src, models, components, services, etc.)
 - **FR-009**: System MUST configure appropriate build configurations for both development and production environments
-- **FR-010**: System MUST include essential tooling configuration files (.gitignore, environment variable templates, build scripts)
+- **FR-010**: System MUST include essential tooling configuration files (.gitignore, environment variable templates, build scripts) and automated setup scripts (setup.sh for macOS/Linux, setup.ps1 for Windows) that verify prerequisites, restore dependencies, and display launch instructions
 - **FR-011**: System MUST include comprehensive README documentation with setup instructions, prerequisites, and local development workflow
 
 ### Key Entities *(include if feature involves data)*
@@ -145,6 +145,16 @@ New team members need clear documentation and a straightforward process to get t
 - **SC-006**: README documentation includes prerequisites, setup steps, and troubleshooting that enables a new team member to successfully set up the environment without assistance
 - **SC-007**: The repository .gitignore is configured to exclude build artifacts, dependencies, and environment-specific files, reducing accidental commits of non-source files by 100%
 
+## Clarifications
+
+### Session 2025-10-25
+
+- Q: Which Aspire template should be used for FR-001 scaffolding? → A: `dotnet new aspire` (Aspire Empty App from Aspire.ProjectTemplates). This template creates AppHost, API service, and ServiceDefaults without extraneous UI frameworks, providing a clean foundation for adding React.
+- Q: How should React integrate with Aspire orchestration? → A: React runs as a Node process via `AddNpmApp` in the Aspire AppHost. Aspire injects environment variables (e.g., `VITE_API_URL`) to allow React to discover and communicate with the .NET API. Both services appear unified in the Aspire dashboard with unified logging and tracing.
+- Q: What port strategy for local dev (API & React dev server)? → A: Fixed ports for local development. Choose conventional defaults (e.g., API on 5000, React dev server on 5173) with no fallback/retry logic if ports are already in use; developers must free the port or adjust configuration manually.
+- Q: How should developers initialize the project after cloning? → A: Automated setup script (setup.sh for macOS/Linux, setup.ps1 for Windows) that verifies prerequisites (.NET 8 SDK, Node.js 18+), restores .NET dependencies (`dotnet restore`), installs npm packages (`npm install`), and displays launch instructions for running Aspire AppHost.
+- Q: Production build & deployment strategy? → A: React and .NET API are deployed separately. React builds to static files (dist folder) deployed to CDN or static hosting; .NET API deployed independently to cloud/container platform. Local Aspire development is focused on integrated dev experience; production architecture is deferred to deployment/infrastructure spec.
+
 ## Assumptions
 
 - .NET 8 SDK will be used as the target framework (latest stable at time of specification)
@@ -154,3 +164,4 @@ New team members need clear documentation and a straightforward process to get t
 - The API will expose HTTP endpoints (not gRPC as primary protocol) for frontend consumption
 - Developers will use VS Code or Visual Studio for development (common IDEs with Aspire support)
 - Basic networking and service discovery will use local DNS/service names configured by Aspire
+- Production deployment is out of scope for this feature; React and .NET API are deployed separately (React to CDN/static hosting, API to cloud/container platform) per infrastructure/deployment spec
