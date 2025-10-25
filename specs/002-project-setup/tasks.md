@@ -74,12 +74,12 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [ ] T001 Initialize git repository and commit initial structure
-- [ ] T002 [P] Create `.gitignore` file excluding .NET (bin, obj), Node.js (node_modules), and environment files (.env)
-- [ ] T003 [P] Create project root directory structure: `Linksy.AppHost/`, `Linksy.Api/`, `Linksy.ServiceDefaults/`, `frontend/`, `scripts/`, `docs/`
-- [ ] T004 [P] Install `Aspire.ProjectTemplates` NuGet package via `dotnet new install Aspire.ProjectTemplates`
-- [ ] T005 Scaffold Aspire project using `dotnet new aspire --output ./` in repository root
-- [ ] T006 [P] Verify scaffolded structure: Linksy.AppHost, Linksy.Api, Linksy.ServiceDefaults, Linksy.sln exist
+- [x] T001 Initialize git repository and commit initial structure
+- [x] T002 [P] Create `.gitignore` file excluding .NET (bin, obj), Node.js (node_modules), and environment files (.env)
+- [x] T003 [P] Create project root directory structure: `Linksy.AppHost/`, `Linksy.Api/`, `Linksy.ServiceDefaults/`, `frontend/`, `scripts/`, `docs/`
+- [x] T004 [P] Install `Aspire.ProjectTemplates` NuGet package via `dotnet new install Aspire.ProjectTemplates`
+- [x] T005 Scaffold Aspire project using `dotnet new aspire --output ./` in repository root
+- [x] T006 [P] Verify scaffolded structure: Linksy.AppHost, Linksy.Api, Linksy.ServiceDefaults, Linksy.sln exist
 
 ---
 
@@ -97,14 +97,14 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [ ] T007 [P] [US2] Configure `Linksy.Api.csproj` to target .NET 8 and include Aspire NuGet packages (Microsoft.Extensions.ServiceDiscovery, Aspire.Extensions.ServiceDiscovery)
-- [ ] T008 [P] [US2] Create `Linksy.Api/Program.cs` with Minimal API setup, dependency injection, and service configuration
-- [ ] T009 [P] [US2] Implement health check endpoint (`GET /health`) in `Linksy.Api/Program.cs` returning 200 OK with status JSON
-- [ ] T010 [P] [US2] Add structured logging configuration in `Linksy.Api/Program.cs` using `ILogger` and Aspire logging
-- [ ] T011 [US2] Create sample API endpoint (e.g., `GET /api/info`) in `Linksy.Api/Program.cs` demonstrating Minimal API pattern
-- [ ] T012 [P] [US2] Create `appsettings.json` in `Linksy.Api/` with port configuration (5000) and logging settings
-- [ ] T013 [P] [US2] Add `xUnit` test project `Linksy.Api.Tests/` with sample health check test in `Linksy.Api.Tests/HealthCheckTests.cs`
-- [ ] T014 [US2] Verify backend builds and runs: `dotnet build` and `dotnet run --project Linksy.Api` complete successfully
+- [x] T007 [P] [US2] Configure `Linksy.Api.csproj` to target .NET 8 and include Aspire NuGet packages (Microsoft.Extensions.ServiceDiscovery, Aspire.Extensions.ServiceDiscovery)
+- [x] T008 [P] [US2] Create `Linksy.Api/Program.cs` with Minimal API setup, dependency injection, and service configuration
+- [x] T009 [P] [US2] Implement health check endpoint (`GET /health`) in `Linksy.Api/Program.cs` returning 200 OK with status JSON
+- [x] T010 [P] [US2] Add structured logging configuration in `Linksy.Api/Program.cs` using `ILogger` and Aspire logging
+- [x] T011 [US2] Create sample API endpoint (e.g., `GET /api/info`) in `Linksy.Api/Program.cs` demonstrating Minimal API pattern
+- [x] T012 [P] [US2] Create `appsettings.json` in `Linksy.Api/` with port configuration (5000) and logging settings
+- [x] T013 [P] [US2] Add `xUnit` test project `Linksy.Api.Tests/` with sample health check test in `Linksy.Api.Tests/HealthCheckTests.cs`
+- [x] T014 [US2] Verify backend builds and runs: `dotnet build` and `dotnet run --project Linksy.Api` complete successfully
 
 ---
 
