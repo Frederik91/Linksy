@@ -114,7 +114,7 @@ New team members need clear documentation and a straightforward process to get t
 
 ### Functional Requirements
 
-- **FR-001**: System MUST initialize a .NET 8 Web API project using the official .NET template as the foundation
+- **FR-001**: System MUST initialize the project using the Aspire starter app template (via Aspire.ProjectTemplates or equivalent). The Aspire starter app will scaffold a .NET API project and a Blazor app; after scaffolding, the Blazor app will be removed and replaced by a React application (Vite + shadcn/ui) while preserving the generated API. This step bootstraps the core service(s) and project layout used by subsequent setup tasks.
 - **FR-002**: System MUST configure Aspire as the orchestration host that manages both the API and frontend services during local development
 - **FR-003**: System MUST initialize a React project using Vite as the build tool and module bundler
 - **FR-004**: System MUST install and configure shadcn/ui component library in the React project with full styling support
