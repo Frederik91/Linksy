@@ -4,9 +4,9 @@ A modern, full-stack application for synchronizing Architecture, Engineering, an
 
 ## Technology Stack
 
-- **Backend**: .NET 8 Web API (ASP.NET Core)
+- **Backend**: .NET 9.0 Web API (ASP.NET Core Minimal API + Aspire 9.5.1)
 - **Frontend**: React 19+ with TypeScript, Vite, shadcn/ui
-- **Orchestration**: .NET Aspire
+- **Orchestration**: .NET Aspire 9.5.1 (latest stable)
 - **Database**: PostgreSQL (Phase 2+)
 - **Node.js**: 22 LTS (required)
 
@@ -16,9 +16,9 @@ Before you begin, ensure you have the following installed:
 
 ### Required
 
-- **.NET 8 SDK** or later
-  - [Download from microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0)
-  - Verify: `dotnet --version`
+- **.NET 9 SDK** or later (Aspire 9.5.1 requires .NET 9.0+)
+  - [Download from microsoft.com](https://dotnet.microsoft.com/download/dotnet/9.0)
+  - Verify: `dotnet --version` (must show 9.x.x)
 
 - **Node.js 22 LTS** or later
   - [Download from nodejs.org](https://nodejs.org/)

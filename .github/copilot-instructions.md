@@ -7,9 +7,10 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 ### Backend
 - **.NET 9.0** (SDK & Target Framework)
 - **ASP.NET Core Minimal API** - Lightweight REST endpoint pattern
-- **Aspire 9.0.0** - Service orchestration for local development
+- **Aspire 9.5.1** - Service orchestration for local development (latest stable)
+- **OpenTelemetry 1.13.0** - Distributed tracing and metrics
 - **xUnit 2.9.3** - Unit testing framework
-- **Swagger/OpenAPI 9.0.0** - API documentation
+- **OpenAPI 9.0.9** - API documentation
 
 ### Frontend  
 - **React 19.0+** - UI framework (TypeScript only - no JavaScript files)
@@ -151,8 +152,9 @@ dotnet publish -c Release            # Publish API for production
 
 ## Recent Changes
 
-- **002-project-setup**: Implemented complete project scaffold
-  - .NET 9.0 + Aspire 9.0.0 orchestration
+- **002-project-setup**: Implemented complete project scaffold with Aspire 9.5.1
+  - .NET 9.0 + Aspire 9.5.1 orchestration (latest stable)
+  - Service Defaults pattern for shared infrastructure (service discovery, resilience, health checks, OpenTelemetry)
   - React 19 + TypeScript + Vite + shadcn/ui + Tailwind CSS 4
   - Node.js 22 LTS enforcement
   - Automated setup scripts
