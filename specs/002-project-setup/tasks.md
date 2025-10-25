@@ -124,20 +124,20 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [ ] T015 Create `frontend/` directory structure with `src/`, `public/`, `dist/` (placeholder), `tests/` folders
-- [ ] T016 Create `frontend/package.json` with React 19+, Vite 5+, TypeScript 5+, shadcn/ui, Tailwind CSS 4+, Vitest, React Testing Library dependencies
-- [ ] T017 [P] Create `frontend/tsconfig.json` with TypeScript strict mode enabled, React 19 JSX transform configuration
-- [ ] T018 [P] Create `frontend/vite.config.ts` configuring dev server (port 5173), React plugin, TypeScript support, environment variable handling
-- [ ] T019 [P] Create `frontend/src/main.tsx` entry point importing React, rendering App component, importing Tailwind CSS
-- [ ] T020 [P] Create `frontend/src/App.tsx` as root component with TypeScript interface; demonstrates shadcn/ui Button component import
-- [ ] T021 [P] Create `frontend/src/index.css` with Tailwind CSS 4+ base styles and shadcn/ui component styles
-- [ ] T022 [P] Create `frontend/.env.example` with `VITE_API_URL=http://localhost:5000` template
-- [ ] T023 [P] Configure shadcn/ui in `frontend/` using `npx shadcn-ui@latest init` (components.json, tsconfig.paths)
-- [ ] T024 [P] Create sample shadcn/ui components folder `frontend/src/components/ui/` with Button component imported via shadcn
-- [ ] T025 [P] Create `frontend/src/components/App.test.tsx` demonstrating Vitest + React Testing Library setup with TypeScript
-- [ ] T026 [US3] Verify frontend builds and runs: `npm run build --prefix ./frontend` and `npm run dev --prefix ./frontend` complete successfully
-- [ ] T027 [P] [US3] Verify no JavaScript files in `frontend/src/`: `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero results
-- [ ] T028 [P] [US3] Verify TypeScript compilation: `npx tsc --noEmit --project frontend/tsconfig.json` returns zero errors
+- [x] T015 Create `frontend/` directory structure with `src/`, `public/`, `dist/` (placeholder), `tests/` folders
+- [x] T016 Create `frontend/package.json` with React 19+, Vite 5+, TypeScript 5+, shadcn/ui, Tailwind CSS 4+, Vitest, React Testing Library dependencies
+- [x] T017 [P] Create `frontend/tsconfig.json` with TypeScript strict mode enabled, React 19 JSX transform configuration
+- [x] T018 [P] Create `frontend/vite.config.ts` configuring dev server (port 5173), React plugin, TypeScript support, environment variable handling
+- [x] T019 [P] Create `frontend/src/main.tsx` entry point importing React, rendering App component, importing Tailwind CSS
+- [x] T020 [P] Create `frontend/src/App.tsx` as root component with TypeScript interface; demonstrates shadcn/ui Button component import
+- [x] T021 [P] Create `frontend/src/index.css` with Tailwind CSS 4+ base styles and shadcn/ui component styles
+- [x] T022 [P] Create `frontend/.env.example` with `VITE_API_URL=http://localhost:5000` template
+- [x] T023 [P] Configure shadcn/ui in `frontend/` using `npx shadcn-ui@latest init` (components.json, tsconfig.paths)
+- [x] T024 [P] Create sample shadcn/ui components folder `frontend/src/components/ui/` with Button component imported via shadcn
+- [x] T025 [P] Create `frontend/src/components/App.test.tsx` demonstrating Vitest + React Testing Library setup with TypeScript
+- [x] T026 [US3] Verify frontend builds and runs: `npm run build --prefix ./frontend` and `npm run dev --prefix ./frontend` complete successfully
+- [x] T027 [P] [US3] Verify no JavaScript files in `frontend/src/`: `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero results
+- [x] T028 [P] [US3] Verify TypeScript compilation: `npx tsc --noEmit --project frontend/tsconfig.json` returns zero errors
 
 ---
 
@@ -156,11 +156,11 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [ ] T029 [US4] Configure `Linksy.AppHost/Program.cs` to register .NET API via `AddProject<Projects.Linksy_Api>("api")`
-- [ ] T030 [US4] Configure `Linksy.AppHost/Program.cs` to register React frontend via `AddNpmApp("frontend", "../frontend")`
-- [ ] T031 [US4] Add service reference from React to API: React `WithReference(api)` and inject environment variable `WithEnvironment("VITE_API_URL", api.GetEndpoint("http"))`
-- [ ] T032 [P] [US4] Add startup ordering: React waits for API via `.WaitFor(api)` ensuring API health check passes before React starts
-- [ ] T033 Verify Aspire orchestration: `dotnet run --project Linksy.AppHost` starts both services with Aspire Dashboard accessible at http://localhost:18888
+- [x] T029 [US4] Configure `Linksy.AppHost/Program.cs` to register .NET API via `AddProject<Projects.Linksy_Api>("api")`
+- [x] T030 [US4] Configure `Linksy.AppHost/Program.cs` to register React frontend via `AddNpmApp("frontend", "../frontend")`
+- [x] T031 [US4] Add service reference from React to API: React `WithReference(api)` and inject environment variable `WithEnvironment("VITE_API_URL", api.GetEndpoint("http"))`
+- [x] T032 [P] [US4] Add startup ordering: React waits for API via `.WaitFor(api)` ensuring API health check passes before React starts
+- [x] T033 Verify Aspire orchestration: `dotnet run --project Linksy.AppHost` starts both services with Aspire Dashboard accessible at http://localhost:18888
 
 ---
 
