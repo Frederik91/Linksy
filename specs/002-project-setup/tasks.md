@@ -235,9 +235,9 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 **Tasks**:
 
-- [ ] T060 Create pull request from `002-project-setup` to `develop` with title "002: Project Initialization with .NET Aspire, React + Vite + shadcn/ui"
-- [ ] T061 [P] Enable auto-complete on PR for automated merge when all checks pass
-- [ ] T062 Update `.github/copilot-instructions.md` with tech stack: .NET 8, Node.js 22 LTS, React 19+, Vite 5+, shadcn/ui, Tailwind CSS 4+, Aspire
+- [x] T060 Create pull request from `002-project-setup` to `develop` with title "002: Project Initialization with .NET 9 Aspire, React 19 + Vite 5 + shadcn/ui"
+- [x] T061 [P] Enable auto-complete on PR for automated merge when all checks pass
+- [x] T062 Update `.github/copilot-instructions.md` with tech stack: .NET 9, Node.js 22 LTS, React 19+, Vite 5+, shadcn/ui, Tailwind CSS 4+, Aspire 9.0.0 ✅
 - [ ] T063 Merge PR to `develop` branch upon approval
 
 ---
