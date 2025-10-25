@@ -179,15 +179,15 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [ ] T034 [P] Create `scripts/setup.sh` (macOS/Linux) checking for .NET 8 SDK, Node.js 22+, running `dotnet restore` and `npm install --prefix ./frontend`
-- [ ] T035 [P] Create `scripts/setup.ps1` (Windows PowerShell) with same checks and commands as setup.sh, adapted for PowerShell syntax
-- [ ] T036 [P] Create `scripts/verify-prereqs.sh` standalone prerequisite verification script for CI/automated testing
-- [ ] T037 Create `README.md` with project overview, architecture diagram, prerequisites, setup instructions, troubleshooting (top 5 common issues), useful commands
-- [ ] T038 [P] Add prerequisites section to README.md: .NET 8 SDK, Node.js 22 LTS (enforce in setup script)
-- [ ] T039 [P] Add setup instructions to README.md covering both macOS/Linux (`./scripts/setup.sh`) and Windows (`./scripts/setup.ps1`)
-- [ ] T040 [P] Add troubleshooting section to README.md: port conflicts, missing prerequisites, HMR issues, API connection failures
-- [ ] T041 [P] Add useful commands section to README.md: starting Aspire, viewing logs, rebuilding, production build commands
-- [ ] T042 Create `docs/.env.example` template in repository root documenting required environment variables for React (`VITE_API_URL=http://localhost:5000`)
+- [x] T034 [P] Create `scripts/setup.sh` (macOS/Linux) checking for .NET 8 SDK, Node.js 22+, running `dotnet restore` and `npm install --prefix ./frontend`
+- [x] T035 [P] Create `scripts/setup.ps1` (Windows PowerShell) with same checks and commands as setup.sh, adapted for PowerShell syntax
+- [x] T036 [P] Create `scripts/verify-prereqs.sh` standalone prerequisite verification script for CI/automated testing
+- [x] T037 Create `README.md` with project overview, architecture diagram, prerequisites, setup instructions, troubleshooting (top 5 common issues), useful commands
+- [x] T038 [P] Add prerequisites section to README.md: .NET 8 SDK, Node.js 22 LTS (enforce in setup script)
+- [x] T039 [P] Add setup instructions to README.md covering both macOS/Linux (`./scripts/setup.sh`) and Windows (`./scripts/setup.ps1`)
+- [x] T040 [P] Add troubleshooting section to README.md: port conflicts, missing prerequisites, HMR issues, API connection failures
+- [x] T041 [P] Add useful commands section to README.md: starting Aspire, viewing logs, rebuilding, production build commands
+- [x] T042 Create `docs/.env.example` template in repository root documenting required environment variables for React (`VITE_API_URL=http://localhost:5000`)
 
 ---
 
