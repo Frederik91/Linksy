@@ -1,50 +1,76 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: 1.1.0 → 1.2.0
+- Modified principles: None
+- Modified sections: Project naming, Delivery Workflow & Quality Gates (frontend stack)
+- Added sections: None
+- Removed sections: None
+- Templates requiring updates: ✅ .specify/templates/plan-template.md, ✅ .specify/templates/spec-template.md, ✅ .specify/templates/tasks-template.md
+- Follow-up TODOs: None
+-->
+
+# Linksy Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Frictionless Adoption
+- The onboarding wizard MUST let a new tenant connect Autodesk Construction Cloud (ACC) and SharePoint in under 10 minutes with reversible defaults.
+- Management UI, APIs, and documentation MUST assume BIM managers and project coordinators as the primary personas with concise copy and safe guardrails.
+- Every configuration change MUST provide preview and dry-run options before activation to prevent accidental disruption.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+*Rationale: Our target users adopt the platform only if setup is intuitive, fast, and low risk, eliminating the heavy lift that current integration tools impose.*
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Deterministic Sync Integrity
+- All bindings MUST run headless via the orchestrator using scheduled or on-demand jobs; no manual file handling or per-user tokens are permitted.
+- Workers MUST maintain per-binding delta tokens, checkpoint tables, and conflict policies (SourceWins default, TargetWins, LastWriterWins, ManualHold) so every change is replayable and idempotent.
+- Sync jobs MUST persist version metadata, emit structured change logs, and honour delete ceilings to protect against data loss.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+*Rationale: The core value is trustworthy bidirectional synchronization; deterministic, auditable processing is the only acceptable baseline.*
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Security & Compliance by Design
+- Only application-level OAuth (client credentials) is allowed for external connectors; secrets MUST be encrypted per tenant using Azure Key Vault–backed keys.
+- Persistent storage MUST exclude file bodies; only metadata (paths, hashes, timestamps, versions) may be retained, and transient blob caches MUST expire within 24 hours.
+- Audit trails MUST capture who/what/when for every mutation with 90-day retention and exportability to meet ISO 19650, GDPR, and customer due diligence.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+*Rationale: AEC firms require regulated handling of project data; security baked into architecture protects trust and unlocks enterprise adoption.*
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Extensible Connector Platform
+- New connectors MUST be authored against the shared Connector SDK covering auth, throttling, paging, mapping, and logging, with contract tests passing before rollout.
+- Each connector MUST expose consistent capabilities: list, delta detection, upload/download, rename/move, versioning, and conflict policy enforcement.
+- Compatibility matrices and feature flags MUST guard partially implemented connectors so Phase 1 platforms (ACC Docs, SharePoint/OneDrive) remain stable while future platforms onboard iteratively.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+*Rationale: Sustainable growth depends on a reusable integration spine; the SDK keeps connectors uniform, testable, and maintainable as coverage expands.*
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Observable & Cost-Conscious Operations
+- Every job MUST emit OpenTelemetry traces, metrics (files/sec, bytes/sec, conflict rate, retry rate), and structured logs partitioned by tenant for live diagnostics.
+- Safety levers—dry-run mode, delete caps (≤100 per job), quarantine queues, and scoped previews—MUST be enforced before production rollout.
+- Operations MUST track resource consumption per tenant to inform tiered pricing and ensure affordability goals remain measurable.
+
+*Rationale: Comprehensive telemetry and guardrails keep synchronisation reliable, empower support teams, and protect affordability by tying usage to spend.*
+
+## Phase 1 Scope Guardrails
+
+Phase 1 delivery MUST include:
+
+- Supported services: Autodesk Construction Cloud Docs module and Microsoft SharePoint Online (Graph Sites.Selected scope).
+- Core capabilities: application-level OAuth setup, scheduled or on-demand bidirectional sync, version-aware conflict resolution, metadata and activity logging, and sync reporting.
+- Target personas: BIM managers, digital engineers, and project coordinators operating mixed Autodesk/Microsoft ecosystems.
+
+Any deviation requires governance approval plus a mitigation plan for affected tenants.
+
+## Delivery Workflow & Quality Gates
+
+- **Architecture stack**: Frontend in React + TypeScript using shadcn/ui for component primitives (Vite or Next.js), backend in .NET 8 Web API/Minimal API, PostgreSQL metadata store, Azure Blob transient cache, Azure App Service/Container Apps deployment.
+- **Orchestration**: Sync Orchestrator and job queue (Azure Storage Queues/Service Bus) MUST guarantee at-least-once delivery with exponential backoff (2s → 2m, 5 attempts).
+- **Testing discipline**: Unit, contract, integration, and chaos scenarios (429/timeouts) MUST be automated; connector contract tests MUST run before enabling a tenant.
+- **Developer experience**: Local development MUST run via .NET Aspire orchestrating PostgreSQL, Azurite, queue emulators, the backend API, and the React frontend with shadcn/ui; pull requests MUST include telemetry validation and migration scripts when schema changes.
+- **Operational readiness**: Observability dashboards per tenant, alerting on error budget breaches (p95 change-to-sync ≤10 minutes, ≥99.5% daily success), and documented support playbooks MUST exist before GA.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- **Authority**: This constitution supersedes other delivery playbooks for AEC File Sync; product, engineering, and operations teams are accountable for compliance.
+- **Amendments**: Proposed changes require written RFC, review by platform leads, and sign-off from security/compliance stakeholders. Approved changes MUST update this document, affected templates, and traceable tickets.
+- **Versioning**: Semantic versioning applies—MAJOR for governance-breaking changes, MINOR for new principles or sections, PATCH for clarifications. Each amendment updates the Sync Impact Report.
+- **Compliance review**: Quarterly audits verify principle adherence, telemetry health, and affordability KPIs; violations trigger remediation plans tracked to closure.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.2.0 | **Ratified**: 2025-10-25 | **Last Amended**: 2025-10-25
