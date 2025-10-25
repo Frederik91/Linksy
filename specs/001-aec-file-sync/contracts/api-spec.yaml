@@ -1,0 +1,1208 @@
+openapi: 3.0.3
+info:
+  title: AEC File Sync Platform API
+  description: Multi-tenant SaaS API for synchronizing files between Autodesk Construction Cloud (ACC) Docs and Microsoft SharePoint Online
+  version: 1.0.0
+  contact:
+    name: Linksy Development Team
+    url: https://github.com/Frederik91/Linksy
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+  - url: https://api.linksy.cloud
+    description: Production
+
+tags:
+  - name: Health
+    description: Service health and readiness checks
+  - name: Tenants
+    description: Multi-tenant management
+  - name: Connectors
+    description: External platform integrations (ACC Docs, SharePoint)
+  - name: Bindings
+    description: Folder pair synchronization configuration
+  - name: Jobs
+    description: Sync job execution and monitoring
+  - name: Conflicts
+    description: Conflict detection and manual resolution
+  - name: Quarantine
+    description: Soft-deleted file recovery
+  - name: Credentials
+    description: Credential rotation and credential state
+  - name: Audit
+    description: Immutable audit trail export and query
+  - name: Metrics
+    description: OpenTelemetry observability metrics
+
+security:
+  - BearerToken: []
+
+paths:
+  # ============ HEALTH ============
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service health check
+      description: No authentication required; used by load balancers and Aspire health probes
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: Healthy
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: Healthy
+                      redis:
+                        type: string
+                        example: Healthy
+
+  # ============ TENANTS ============
+  /api/tenants:
+    post:
+      tags:
+        - Tenants
+      summary: Create new tenant (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, org_id, email]
+              properties:
+                name:
+                  type: string
+                  example: "Acme Construction"
+                org_id:
+                  type: string
+                  example: "org_12345"
+                email:
+                  type: string
+                  format: email
+                  example: "billing@acme.com"
+      responses:
+        '201':
+          description: Tenant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tenants/{tenantId}:
+    get:
+      tags:
+        - Tenants
+      summary: Get tenant details and binding summary
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tenant details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Tenant'
+                  - type: object
+                    properties:
+                      bindingsSummary:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          active:
+                            type: integer
+                          paused:
+                            type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Tenants
+      summary: Update tenant configuration
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, paused, suspended]
+      responses:
+        '200':
+          description: Tenant updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+
+  # ============ CONNECTORS ============
+  /api/tenants/{tenantId}/connectors:
+    post:
+      tags:
+        - Connectors
+      summary: Register new external connector (FR-002)
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, displayName, oauthAuthorizationCode]
+              properties:
+                type:
+                  type: string
+                  enum: [ACC_DOCS, SHAREPOINT]
+                displayName:
+                  type: string
+                  example: "ACC Docs - Project Alpha"
+                oauthAuthorizationCode:
+                  type: string
+                  description: OAuth2 authorization code (exchanged for tokens)
+      responses:
+        '201':
+          description: Connector registered and validated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connector'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      tags:
+        - Connectors
+      summary: List all connectors for tenant
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of connectors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Connector'
+
+  /api/tenants/{tenantId}/connectors/{connectorId}:
+    get:
+      tags:
+        - Connectors
+      summary: Get connector details
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: connectorId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Connector details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connector'
+
+    delete:
+      tags:
+        - Connectors
+      summary: Deregister connector (FR-008)
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: connectorId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Connector deregistered
+        '409':
+          description: Connector in use by active bindings
+
+  # ============ BINDINGS ============
+  /api/tenants/{tenantId}/bindings:
+    post:
+      tags:
+        - Bindings
+      summary: Create new folder binding (FR-003)
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceConnectorId, targetConnectorId, sourceFolderId, targetFolderId, direction, conflictPolicy, scheduleCadence]
+              properties:
+                sourceConnectorId:
+                  type: string
+                  format: uuid
+                targetConnectorId:
+                  type: string
+                  format: uuid
+                sourceFolderId:
+                  type: string
+                  example: "acc-docs-folder-123"
+                targetFolderId:
+                  type: string
+                  example: "sp-item-456"
+                direction:
+                  type: string
+                  enum: [ONE_WAY, BIDIRECTIONAL]
+                conflictPolicy:
+                  type: string
+                  enum: [SOURCE_WINS, TARGET_WINS, LAST_WRITER_WINS, MANUAL_HOLD]
+                  description: "FR-004: Conflict resolution strategy"
+                scheduleCadence:
+                  type: string
+                  enum: [REALTIME, HOURLY, DAILY, WEEKLY, MANUAL_ONLY]
+      responses:
+        '201':
+          description: Binding created; validation pending
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Binding'
+                  - type: object
+                    properties:
+                      validationStatus:
+                        type: string
+                        description: "pending, in_progress, success, failed"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      tags:
+        - Bindings
+      summary: List bindings for tenant
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused, disabled]
+      responses:
+        '200':
+          description: List of bindings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Binding'
+
+  /api/bindings/{bindingId}:
+    get:
+      tags:
+        - Bindings
+      summary: Get binding details with last job status
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Binding details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Binding'
+                  - type: object
+                    properties:
+                      lastJob:
+                        $ref: '#/components/schemas/SyncJob'
+
+    put:
+      tags:
+        - Bindings
+      summary: Update binding configuration (FR-003)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                conflictPolicy:
+                  type: string
+                  enum: [SOURCE_WINS, TARGET_WINS, LAST_WRITER_WINS, MANUAL_HOLD]
+                scheduleCadence:
+                  type: string
+                  enum: [REALTIME, HOURLY, DAILY, WEEKLY, MANUAL_ONLY]
+      responses:
+        '200':
+          description: Binding updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Binding'
+
+  /api/bindings/{bindingId}/pause:
+    patch:
+      tags:
+        - Bindings
+      summary: Pause binding (FR-007)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Binding paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Binding'
+
+  /api/bindings/{bindingId}/disable:
+    patch:
+      tags:
+        - Bindings
+      summary: Disable binding (FR-007)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Binding disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Binding'
+
+  /api/bindings/{bindingId}/manual-sync:
+    post:
+      tags:
+        - Bindings
+      summary: Trigger on-demand sync (FR-007)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Sync job enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "pending"
+
+  # ============ JOBS ============
+  /api/bindings/{bindingId}/jobs:
+    get:
+      tags:
+        - Jobs
+      summary: List sync jobs for binding (FR-009)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of sync jobs (newest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SyncJob'
+
+  /api/jobs/{jobId}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job details with change summary (FR-009)
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job details with summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SyncJob'
+                  - type: object
+                    properties:
+                      changesSummary:
+                        type: object
+                        properties:
+                          created:
+                            type: integer
+                          updated:
+                            type: integer
+                          deleted:
+                            type: integer
+                          conflicts:
+                            type: integer
+
+  /api/jobs/{jobId}/changes:
+    get:
+      tags:
+        - Jobs
+      summary: Get change items for job with pagination
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, in_progress, completed, failed, quarantined, manual_hold]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Change items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChangeItem'
+
+  /api/jobs/{jobId}/retry:
+    post:
+      tags:
+        - Jobs
+      summary: Manually retry failed job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Retry job enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newJobId:
+                    type: string
+                    format: uuid
+
+  # ============ CONFLICTS ============
+  /api/bindings/{bindingId}/conflicts:
+    get:
+      tags:
+        - Conflicts
+      summary: List pending conflicts for binding (FR-012)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of conflicting change items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChangeItem'
+
+  /api/conflicts/{changeItemId}/resolve:
+    post:
+      tags:
+        - Conflicts
+      summary: Operator resolves conflict (FR-012)
+      parameters:
+        - name: changeItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chosenSource]
+              properties:
+                chosenSource:
+                  type: string
+                  enum: [ACC_DOCS, SHAREPOINT]
+                  description: "Which platform version to keep"
+      responses:
+        '200':
+          description: Conflict resolved; change will be applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeItem'
+
+  # ============ QUARANTINE ============
+  /api/bindings/{bindingId}/quarantine:
+    get:
+      tags:
+        - Quarantine
+      summary: List soft-deleted (quarantined) files (FR-011)
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of quarantined change items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChangeItem'
+
+  /api/quarantine/{changeItemId}/restore:
+    post:
+      tags:
+        - Quarantine
+      summary: Restore soft-deleted file (FR-011)
+      parameters:
+        - name: changeItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Restoration job enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "pending"
+
+  # ============ CREDENTIALS ============
+  /api/tenants/{tenantId}/connectors/{connectorId}/rotate-credentials:
+    post:
+      tags:
+        - Credentials
+      summary: Initiate credential rotation (FR-008a)
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: connectorId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oauthAuthorizationCode]
+              properties:
+                oauthAuthorizationCode:
+                  type: string
+                  description: New OAuth2 authorization code
+      responses:
+        '202':
+          description: Credential rotation initiated; pending jobs queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "rotating"
+                  affectedBindings:
+                    type: integer
+                  pausedJobsCount:
+                    type: integer
+
+  /api/tenants/{tenantId}/credential-status:
+    get:
+      tags:
+        - Credentials
+      summary: View credential rotation history and status
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credential status for all connectors
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    rotationStatus:
+                      type: string
+                      enum: [current, rotated, scheduled]
+                    rotatedAt:
+                      type: string
+                      format: date-time
+                    expiresAt:
+                      type: string
+                      format: date-time
+                    nextRotationDue:
+                      type: string
+                      format: date-time
+
+  # ============ AUDIT ============
+  /api/tenants/{tenantId}/audit:
+    get:
+      tags:
+        - Audit
+      summary: Query audit log with filters (FR-010)
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: actionType
+          in: query
+          schema:
+            type: string
+        - name: bindingId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: actor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Audit entries matching filters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEntry'
+
+  /api/tenants/{tenantId}/audit/export:
+    post:
+      tags:
+        - Audit
+      summary: Export audit report with hash chain verification (FR-010a)
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  type: string
+                  enum: [csv, json]
+                  default: csv
+                fromDate:
+                  type: string
+                  format: date
+                toDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Audit report exported; includes hash chain footer
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEntry'
+                  verificationMetadata:
+                    type: object
+                    properties:
+                      chainValid:
+                        type: boolean
+                      lastEntryHash:
+                        type: string
+                      generatedAt:
+                        type: string
+                        format: date-time
+
+  /api/tenants/{tenantId}/audit/{entryId}:
+    get:
+      tags:
+        - Audit
+      summary: Get single audit entry with verification metadata
+      parameters:
+        - name: tenantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Audit entry with verification
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuditEntry'
+                  - type: object
+                    properties:
+                      chainVerified:
+                        type: boolean
+
+  # ============ METRICS ============
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: OpenTelemetry metrics in Prometheus format (FR-014)
+      description: Metrics scoped per tenant; includes files processed, bytes, conflicts, throttling events
+      security: []
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP linksy_sync_files_processed_total Total files processed by sync
+                  # TYPE linksy_sync_files_processed_total counter
+                  linksy_sync_files_processed_total{tenant_id="d3de24a2-...",binding_id="b1234-..."} 1250
+                  # HELP linksy_sync_throttle_events_total Throttling events (HTTP 429)
+                  # TYPE linksy_sync_throttle_events_total counter
+                  linksy_sync_throttle_events_total{tenant_id="d3de24a2-...",binding_id="b1234-..."} 3
+
+components:
+  schemas:
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        org_id:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [active, paused, suspended]
+        createdAt:
+          type: string
+          format: date-time
+
+    Connector:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [ACC_DOCS, SHAREPOINT]
+        displayName:
+          type: string
+        healthStatus:
+          type: string
+          enum: [unknown, healthy, degraded, unavailable]
+        lastHealthCheckAt:
+          type: string
+          format: date-time
+        lastError:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Binding:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        sourceConnectorId:
+          type: string
+          format: uuid
+        targetConnectorId:
+          type: string
+          format: uuid
+        sourceFolderId:
+          type: string
+        targetFolderId:
+          type: string
+        direction:
+          type: string
+          enum: [ONE_WAY, BIDIRECTIONAL]
+        conflictPolicy:
+          type: string
+          enum: [SOURCE_WINS, TARGET_WINS, LAST_WRITER_WINS, MANUAL_HOLD]
+        scheduleCadence:
+          type: string
+          enum: [REALTIME, HOURLY, DAILY, WEEKLY, MANUAL_ONLY]
+        status:
+          type: string
+          enum: [active, paused, disabled]
+        lastSyncAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    SyncJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bindingId:
+          type: string
+          format: uuid
+        triggeredBy:
+          type: string
+          enum: [SCHEDULE, MANUAL, CREDENTIAL_ROTATION, HOLD_EXPIRY]
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [pending, running, success, failed, partial]
+        processedFilesCount:
+          type: integer
+        bytesTransferred:
+          type: integer
+        conflictCount:
+          type: integer
+        retryCount:
+          type: integer
+        errorMessage:
+          type: string
+          nullable: true
+
+    ChangeItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        syncJobId:
+          type: string
+          format: uuid
+        bindingId:
+          type: string
+          format: uuid
+        externalFileId:
+          type: string
+        filePath:
+          type: string
+        fileName:
+          type: string
+        action:
+          type: string
+          enum: [CREATE, UPDATE, DELETE, MOVE, RENAME]
+        sourcePlatform:
+          type: string
+          enum: [ACC_DOCS, SHAREPOINT]
+        targetPlatform:
+          type: string
+          enum: [ACC_DOCS, SHAREPOINT]
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed, quarantined, manual_hold]
+        conflictPolicyApplied:
+          type: string
+          nullable: true
+        quarantineUntil:
+          type: string
+          format: date-time
+          nullable: true
+
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: string
+          format: uuid
+        actor:
+          type: string
+        actionType:
+          type: string
+        bindingId:
+          type: string
+          format: uuid
+          nullable: true
+        syncJobId:
+          type: string
+          format: uuid
+          nullable: true
+        context:
+          type: object
+          additionalProperties: {}
+        outcome:
+          type: string
+          enum: [success, failure, escalated]
+        timestamp:
+          type: string
+          format: date-time
+        entryHash:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request format or validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              details:
+                type: object
+
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Unauthorized"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Not found"
+
+  securitySchemes:
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: OAuth2 bearer token from Entra ID SSO

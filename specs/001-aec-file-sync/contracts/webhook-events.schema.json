@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AEC File Sync Webhook Event Schema",
+  "description": "Webhook events from ACC Docs and SharePoint platforms; signed with HMAC-SHA256",
+  "type": "object",
+  "discriminator": {
+    "propertyName": "eventType",
+    "mapping": {
+      "file.created": "#/definitions/FileCreatedEvent",
+      "file.updated": "#/definitions/FileUpdatedEvent",
+      "file.deleted": "#/definitions/FileDeletedEvent",
+      "file.moved": "#/definitions/FileMovedEvent"
+    }
+  },
+  "definitions": {
+    "BaseEvent": {
+      "type": "object",
+      "required": ["eventType", "eventId", "timestamp", "resource"],
+      "properties": {
+        "eventType": {
+          "type": "string",
+          "description": "Event type identifier"
+        },
+        "eventId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique event identifier (prevents replay)"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp of event occurrence"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["ACC_DOCS", "SHAREPOINT"],
+          "description": "Platform originating the event"
+        },
+        "resource": {
+          "$ref": "#/definitions/Resource"
+        }
+      }
+    },
+    "Resource": {
+      "type": "object",
+      "required": ["fileId", "fileName", "filePath"],
+      "properties": {
+        "fileId": {
+          "type": "string",
+          "description": "Platform-specific file identifier"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "File name only (e.g., 'design-v1.dwg')"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "Full folder path + filename (e.g., '/Projects/Building-A/design-v1.dwg')"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of file (e.g., 'application/vnd.autodesk')"
+        },
+        "size": {
+          "type": "integer",
+          "description": "File size in bytes"
+        },
+        "versionId": {
+          "type": "string",
+          "description": "Platform version identifier (for change tracking)"
+        },
+        "modifiedBy": {
+          "type": "string",
+          "description": "User ID or email of last modifier"
+        },
+        "modifiedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last modification on source platform"
+        }
+      }
+    },
+    "FileCreatedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "eventType": {
+              "const": "file.created"
+            }
+          }
+        }
+      ]
+    },
+    "FileUpdatedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["changes"],
+          "properties": {
+            "eventType": {
+              "const": "file.updated"
+            },
+            "changes": {
+              "type": "array",
+              "description": "What changed (e.g., content, metadata, permissions)",
+              "items": {
+                "type": "string",
+                "enum": ["content", "metadata", "permissions", "name"]
+              }
+            },
+            "previousVersionId": {
+              "type": "string",
+              "description": "Prior version ID (for conflict detection)"
+            }
+          }
+        }
+      ]
+    },
+    "FileDeletedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "eventType": {
+              "const": "file.deleted"
+            },
+            "isHardDelete": {
+              "type": "boolean",
+              "default": false,
+              "description": "true = permanent delete, false = soft delete (to trash)"
+            }
+          }
+        }
+      ]
+    },
+    "FileMovedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["previousFilePath"],
+          "properties": {
+            "eventType": {
+              "const": "file.moved"
+            },
+            "previousFilePath": {
+              "type": "string",
+              "description": "Prior folder path before move"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "eventType": "file.created",
+      "eventId": "12345678-1234-5678-1234-567812345678",
+      "timestamp": "2025-10-25T14:32:15.123Z",
+      "source": "ACC_DOCS",
+      "resource": {
+        "fileId": "acc-docs-item-12345",
+        "fileName": "design-v1.dwg",
+        "filePath": "/Projects/Building-A/design-v1.dwg",
+        "mimeType": "application/vnd.autodesk",
+        "size": 2048000,
+        "versionId": "acc-v1-abc123",
+        "modifiedBy": "user@acme.com",
+        "modifiedAt": "2025-10-25T14:32:15.123Z"
+      }
+    },
+    {
+      "eventType": "file.updated",
+      "eventId": "87654321-4321-8765-4321-876543218765",
+      "timestamp": "2025-10-25T14:35:22.456Z",
+      "source": "SHAREPOINT",
+      "resource": {
+        "fileId": "sp-item-67890",
+        "fileName": "design-v1.dwg",
+        "filePath": "/Linksy-Sync/design-v1.dwg",
+        "mimeType": "application/vnd.autodesk",
+        "size": 2120000,
+        "versionId": "sp-v2-def456",
+        "modifiedBy": "reviewer@acme.com",
+        "modifiedAt": "2025-10-25T14:35:22.456Z"
+      },
+      "changes": ["content", "metadata"],
+      "previousVersionId": "sp-v1-abc123"
+    },
+    {
+      "eventType": "file.deleted",
+      "eventId": "11223344-5566-7788-9900-aabbccddeeff",
+      "timestamp": "2025-10-25T14:40:00.789Z",
+      "source": "SHAREPOINT",
+      "resource": {
+        "fileId": "sp-item-11111",
+        "fileName": "old-version.dwg",
+        "filePath": "/Archive/old-version.dwg",
+        "mimeType": "application/vnd.autodesk",
+        "size": 1024000,
+        "versionId": "sp-v3-ghi789",
+        "modifiedBy": "admin@acme.com",
+        "modifiedAt": "2025-10-25T14:40:00.789Z"
+      },
+      "isHardDelete": false
+    },
+    {
+      "eventType": "file.moved",
+      "eventId": "aabbccdd-eeff-0011-2233-445566778899",
+      "timestamp": "2025-10-25T14:45:10.321Z",
+      "source": "ACC_DOCS",
+      "resource": {
+        "fileId": "acc-docs-item-22222",
+        "fileName": "design-v2.dwg",
+        "filePath": "/Projects/Building-A/Phase-2/design-v2.dwg",
+        "mimeType": "application/vnd.autodesk",
+        "size": 2256000,
+        "versionId": "acc-v2-jkl012",
+        "modifiedBy": "user@acme.com",
+        "modifiedAt": "2025-10-25T14:45:10.321Z"
+      },
+      "previousFilePath": "/Projects/Building-A/design-v2.dwg"
+    }
+  ]
+}
