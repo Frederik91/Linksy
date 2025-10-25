@@ -95,13 +95,13 @@
 
 ### Technology & Dependency Enforcement
 
-**Frontend Stack** (locked):
+- **Frontend Stack** (locked):
 - Runtime: Node.js 22 LTS (mandatory, non-negotiable minimum version)
 - Language: TypeScript 5.x (mandatory; no JavaScript files allowed in `src/`)
-- Framework: React 18+ LTS
+- Framework: React 19+ LTS
 - Build tool: Vite 5+
 - UI Library: shadcn/ui component primitives
-- Styling: Tailwind CSS 3
+- Styling: Tailwind CSS 4+
 - Testing: Vitest + React Testing Library (all test files must be `.test.tsx` or `.test.ts`)
 - Linting: ESLint 8+ with TypeScript parser
 - Type checking: TypeScript strict mode enabled (tsconfig.json: `"strict": true`)

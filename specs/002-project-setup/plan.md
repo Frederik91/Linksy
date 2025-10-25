@@ -11,20 +11,20 @@ Bootstrap a full-stack development environment for Linksy using .NET 8 Web API o
 
 ## Technical Context
 
-**Language/Version**: .NET 8 (backend), Node.js 18+ (frontend React)  
+**Language/Version**: .NET 8 (backend), Node.js 22 (frontend React with TypeScript only)  
 **Primary Dependencies**: 
   - Backend: ASP.NET Core 8, Aspire (.NET AppHost orchestration)
-  - Frontend: React 18+, Vite 5+, TypeScript, shadcn/ui, Tailwind CSS
+  - Frontend: React 19+ (TypeScript only, no JavaScript), Vite 5+, TypeScript 5+, shadcn/ui, Tailwind CSS 4+
   - Local orchestration: .NET Aspire (via `dotnet new aspire`)
 
 **Storage**: No persistent storage for this feature; infrastructure only. (PostgreSQL and Azure services configured in future phases)  
 **Testing**: 
   - Backend: xUnit or similar .NET testing framework (included in template)
-  - Frontend: Vitest, React Testing Library (standard Vite template setup)
+  - Frontend: Vitest, React Testing Library with TypeScript (standard Vite template setup, .test.tsx files)
   - Infrastructure: Manual validation of service startup, health checks, environment variable injection
 
-**Target Platform**: macOS / Linux / Windows (any host with .NET 8 SDK, Node.js 18+)  
-**Project Type**: Web (full-stack: backend API + frontend React SPA orchestrated locally via Aspire)  
+**Target Platform**: macOS / Linux / Windows (any host with .NET 8 SDK, Node.js 22 LTS)  
+**Project Type**: Web (full-stack: backend API + frontend React SPA orchestrated locally via Aspire, TypeScript-first)  
 **Performance Goals**: 
   - API startup: <5 seconds (per SC-002)
   - React dev server startup: <5 seconds
@@ -59,6 +59,29 @@ Bootstrap a full-stack development environment for Linksy using .NET 8 Web API o
 **Developer Experience**: Local Aspire orchestration with shadcn/ui ✅ (per constitution v1.2.0 Delivery Workflow section)
 
 **Gate Outcome**: ✅ **PASS** — All material principles either directly satisfied or properly deferred to Phase 2+ connector/sync logic. No violations or exceptions required.
+
+## Technology & Dependency Versions
+
+### Backend (.NET 8 API)
+- **Runtime**: .NET 8 LTS (latest stable)
+- **Framework**: ASP.NET Core Minimal API or MVC (per template)
+- **Orchestration**: Microsoft.Extensions.ServiceDiscovery, Aspire SDKs
+- **Testing**: xUnit (default in template) or NUnit
+- **Logging**: Structured logging via ILogger (built-in)
+
+### Frontend (React)
+- **React**: 19.x LTS
+- **Build Tool**: Vite 5.x
+- **Language**: TypeScript 5.x (mandatory, no JavaScript allowed)
+- **Component Library**: shadcn/ui (built on Radix UI, Tailwind CSS)
+- **Styling**: Tailwind CSS 4.x
+- **Testing**: Vitest + React Testing Library with TypeScript (.test.tsx files only)
+- **Node.js**: 22 LTS (current stable)
+
+### Local Orchestration (Aspire)
+- **.NET Aspire**: 8.1 or later (from Aspire.ProjectTemplates NuGet package)
+- **Dashboard**: Built-in Aspire dashboard (http://localhost:18888 or configured port)
+- **Service Discovery**: Aspire built-in DNS/service resolution
 
 ## Project Structure
 
@@ -106,7 +129,7 @@ Linksy/                                  # Root repository
 │   │   ├── main.tsx
 │   │   └── index.css                   # Tailwind + shadcn/ui styles
 │   ├── public/
-│   ├── package.json                    # React 18+, Vite 5+, shadcn/ui, Tailwind
+│   ├── package.json                    # React 19+, Vite 5+, shadcn/ui, Tailwind CSS 4+
 │   ├── vite.config.ts                  # Vite config with VITE_API_URL env var
 │   ├── tsconfig.json
 │   └── .env.example                    # VITE_API_URL=http://api:5000
@@ -114,7 +137,7 @@ Linksy/                                  # Root repository
 ├── scripts/
 │   ├── setup.sh                        # macOS/Linux setup script
 │   ├── setup.ps1                       # Windows setup script
-│   └── verify-prereqs.sh               # Check .NET 8 SDK, Node.js 18+
+│   └── verify-prereqs.sh               # Check .NET 8 SDK, Node.js 22+
 │
 ├── .gitignore                          # Excludes bin, obj, dist, node_modules, .env
 ├── README.md                           # Setup instructions, troubleshooting, local dev guide

@@ -148,7 +148,7 @@ builder.Build().Run();
 - **Build Tool**: Vite 5.x
 - **Language**: TypeScript
 - **Component Library**: shadcn/ui (built on Radix UI, Tailwind CSS)
-- **Styling**: Tailwind CSS 3.x
+- **Styling**: Tailwind CSS 4.x
 - **Testing**: Vitest + React Testing Library (standard Vite+React stack)
 - **Node.js**: 18+ LTS
 
