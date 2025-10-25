@@ -1,4 +1,4 @@
-# Linksy - AEC File Synchronization Platform
+# Linksy - File Synchronization Platform
 
 A modern, full-stack application for synchronizing Architecture, Engineering, and Construction (AEC) files with a focus on frictionless developer experience and deterministic sync integrity.
 

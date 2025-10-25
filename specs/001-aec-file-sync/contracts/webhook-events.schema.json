@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "AEC File Sync Webhook Event Schema",
+  "title": "Linksy Webhook Event Schema",
   "description": "Webhook events from ACC Docs and SharePoint platforms; signed with HMAC-SHA256",
   "type": "object",
   "discriminator": {

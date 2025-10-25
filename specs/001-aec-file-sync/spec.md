@@ -1,9 +1,9 @@
-# Feature Specification: AEC File Sync Platform
+# Feature Specification: Linksy
 
 **Feature Branch**: `001-aec-file-sync`  
 **Created**: 2025-10-25  
 **Status**: Draft  
-**Input**: Create an app based on docs/idea.md (AEC File Sync concept)
+**Input**: Create an app based on docs/idea.md (Linksy concept)
 
 ## Clarifications
 

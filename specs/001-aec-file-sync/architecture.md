@@ -1,4 +1,4 @@
-# AEC File Sync Platform – Solution Architecture
+# Linksy – Solution Architecture
 
 **Feature**: 001-aec-file-sync | **Date**: 2025-10-25  
 **Purpose**: Multi-tenant SaaS file synchronization between Autodesk Construction Cloud and Microsoft SharePoint Online
@@ -887,7 +887,7 @@ graph LR
 
 ## Summary
 
-This architecture delivers a **secure, scalable, multi-tenant SaaS platform** for AEC file synchronization:
+This architecture delivers a **secure, scalable, multi-tenant SaaS platform** for Linksy file synchronization:
 
 - ✅ **Frontend**: React 19 SPA with JWT + RBAC enforcement
 - ✅ **Backend**: Layered ASP.NET Core services with clear separation of concerns

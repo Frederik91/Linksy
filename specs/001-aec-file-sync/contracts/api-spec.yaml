@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: AEC File Sync Platform API
+  title: Linksy API
   description: Multi-tenant SaaS API for synchronizing files between Autodesk Construction Cloud (ACC) Docs and Microsoft SharePoint Online
   version: 1.0.0
   contact:

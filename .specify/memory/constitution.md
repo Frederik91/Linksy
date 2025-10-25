@@ -68,7 +68,7 @@ Any deviation requires governance approval plus a mitigation plan for affected t
 
 ## Governance
 
-- **Authority**: This constitution supersedes other delivery playbooks for AEC File Sync; product, engineering, and operations teams are accountable for compliance.
+- **Authority**: This constitution supersedes other delivery playbooks for Linksy; product, engineering, and operations teams are accountable for compliance.
 - **Amendments**: Proposed changes require written RFC, review by platform leads, and sign-off from security/compliance stakeholders. Approved changes MUST update this document, affected templates, and traceable tickets.
 - **Versioning**: Semantic versioning applies—MAJOR for governance-breaking changes, MINOR for new principles or sections, PATCH for clarifications. Each amendment updates the Sync Impact Report.
 - **Compliance review**: Quarterly audits verify principle adherence, telemetry health, and affordability KPIs; violations trigger remediation plans tracked to closure.

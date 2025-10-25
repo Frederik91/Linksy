@@ -42,7 +42,7 @@ Bootstrap a full-stack development environment for Linksy using .NET 8 Web API o
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Constitution v1.2.0 Alignment** (Linksy AEC File Sync):
+**Constitution v1.2.0 Alignment** (Linksy):
 
 | Principle | Status | Rationale |
 |-----------|--------|-----------|

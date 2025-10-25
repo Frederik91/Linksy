@@ -1,11 +1,11 @@
-# Implementation Plan: AEC File Sync Platform
+# Implementation Plan: Linksy
 
 **Branch**: `001-aec-file-sync` | **Date**: 2025-10-25 | **Spec**: `/specs/001-aec-file-sync/spec.md`
 **Input**: Feature specification from `/specs/001-aec-file-sync/spec.md`
 
 ## Summary
 
-The AEC File Sync Platform is a multi-tenant, serverless sync engine for bidirectional file synchronization between Autodesk Construction Cloud Docs and Microsoft SharePoint Online. Users (BIM managers, project coordinators) connect platforms via OAuth, set up bindings with conflict policies (SourceWins, TargetWins, LastWriterWins, ManualHold), and the system runs deterministic, observable, auditable sync jobs via Durable Functions with append-only audit trails and compliance-grade immutability.
+Linksy is a multi-tenant, serverless sync engine for bidirectional file synchronization between Autodesk Construction Cloud Docs and Microsoft SharePoint Online. Users (BIM managers, project coordinators) connect platforms via OAuth, set up bindings with conflict policies (SourceWins, TargetWins, LastWriterWins, ManualHold), and the system runs deterministic, observable, auditable sync jobs via Durable Functions with append-only audit trails and compliance-grade immutability.
 
 **Technical approach**: Azure serverless + event-driven architecture (Functions, Durable Functions, SQL Serverless, Storage Queues, Blob with lifecycle policies, Key Vault, App Insights) minimizes idle cost and operational overhead while supporting 99.5% daily job success and <10 minute propagation latency.
 

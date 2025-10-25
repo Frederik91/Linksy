@@ -1,4 +1,4 @@
-# Quickstart Guide: AEC File Sync Platform
+# Quickstart Guide: Linksy
 
 **Date**: 2025-10-25  
 **Target Audience**: Developers, QA engineers, product managers validating MVP functionality
@@ -366,4 +366,4 @@ After validating the quickstart, proceed to:
 
 ---
 
-**Quickstart Complete** ✅ You now have a working AEC File Sync instance running locally!
+**Quickstart Complete** ✅ You now have a working Linksy instance running locally!

@@ -1,8 +1,8 @@
-## Project Overview: AEC File Sync
+## Project Overview: Linksy
 
 ### Vision
 
-AEC File Sync is a modern, user-friendly platform designed to synchronize files seamlessly between major online services used in the Architecture, Engineering, and Construction (AEC) industry. The platform eliminates complexity and high costs found in existing tools, providing a reliable and affordable integration layer for firms managing files across ecosystems like Autodesk Construction Cloud and SharePoint.
+Linksy is a modern, user-friendly platform designed to synchronize files seamlessly between major online services used in the Architecture, Engineering, and Construction (AEC) industry. The platform eliminates complexity and high costs found in existing tools, providing a reliable and affordable integration layer for firms managing files across ecosystems like Autodesk Construction Cloud and SharePoint.
 
 ### Core Objectives
 

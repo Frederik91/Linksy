@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document defines the complete data model for the AEC File Sync Platform. It includes:
+This document defines the complete data model for the Linksy platform. It includes:
 1. **Entity Definitions** — Core domain objects and relationships
 2. **Database Schema** — PostgreSQL DDL with constraints, indexes, and immutability enforcement
 3. **State Machines** — Workflow transitions for Binding and SyncJob lifecycles

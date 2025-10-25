@@ -1,6 +1,6 @@
 # API Contracts Reference
 
-This directory contains the formal API specifications and event schemas for the AEC File Sync Platform.
+This directory contains the formal API specifications and event schemas for Linksy.
 
 ## Files
 

@@ -1,4 +1,4 @@
-# Phase 0 Research: AEC File Sync Platform
+# Phase 0 Research: Linksy
 
 **Date**: 2025-10-25  
 **Status**: Research Execution Complete  

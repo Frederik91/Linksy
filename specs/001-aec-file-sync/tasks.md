@@ -1,841 +1,599 @@
-# Phase 2 Tasks: AEC File Sync Platform
+# Implementation Tasks: Linksy
 
-**Date**: 2025-10-25  
-**Status**: Task Generation Complete  
-**Input**: spec.md (3 user stories, 16 FR), plan.md (tech stack, project structure), research.md (8 design decisions)  
-**Next Phase**: Phase 3 Implementation (code generation from these tasks)
-
----
+**Branch**: `001-aec-file-sync` | **Date**: 2025-10-25  
+**Source Specification**: `/specs/001-aec-file-sync/spec.md` | **Source Plan**: `/specs/001-aec-file-sync/plan.md`
 
 ## Overview
 
-This document breaks down the AEC File Sync Platform into executable tasks organized by implementation phase and user story. Each task includes:
-- **Task ID** (T[Phase][Category][Number]): Unique identifier
-- **Priority**: P1 (critical path), P2 (required), P3 (polish/optional)
-- **Story**: Which user story(ies) this task supports
-- **Description**: Concrete deliverable
-- **File Paths**: Specific locations for implementation
-- **Dependencies**: Blocking tasks (if any)
-- **Test Criteria**: How to validate completion
+This document breaks down the Linksy feature into granular, executable work items organized by implementation phase and user story priority. Each task includes effort estimate, dependencies, and file paths for context.
 
-**Total Tasks**: ~75 across 6 implementation phases  
-**Est. Duration**: 8-12 weeks for pilot (10-50 tenants)  
-**Parallelization**: Tasks within Phase 2-3 can run in parallel once Phase 1 is complete
+**Task ID Format**: `T###` (e.g., T001, T002, T100)  
+**Priority Prefix**: `[P1]`, `[P2]`, `[P3]` (from spec user stories)  
+**Story Label**: `[US1]`, `[US2]`, `[US3]` (from spec user stories: Onboarding, Monitoring, Audit)  
+**Labels**: `[frontend]`, `[backend]`, `[infra]`, `[test]`, `[docs]`
 
 ---
 
-## Phase 1: Project Setup & Infrastructure
+## Phase 0: Setup & Configuration (11 days)
 
-**Goal**: Initialize project structure, database schema, authentication framework, and local development environment.  
-**Duration**: 1 week  
-**Deliverables**: Solution compiles, database migrations run, Aspire orchestration works, frontend dev server runs
+### Infrastructure & Project Initialization (5 tasks)
 
-### 1.1 Backend Project Initialization
+- [ ] **T001** `[P1]` `[infra]` Initialize Linksy.Sync project for Durable Functions
+  - File: `src/Linksy.Sync/Linksy.Sync.csproj`
+  - Create .NET 9 class library with Azure.Functions.Worker.Extensions.DurableTask
+  - **Effort**: 0.5 day
 
-- [ ] **T1-001** [P1] Setup: Create `Linksy.Api.csproj` with ASP.NET Core 9.0 Minimal API template, reference `Linksy.ServiceDefaults`
-  - **File**: `src/Linksy.Api/Linksy.Api.csproj`
-  - **Dependencies**: None (first backend task)
-  - **Test**: `dotnet build src/Linksy.Api` succeeds with zero warnings
+- [ ] **T002** `[P1]` `[infra]` Configure Azure Functions local development environment
+  - Files: `src/Linksy.Api/Program.cs`, `src/Linksy.Sync/Program.cs`, `local.settings.json`
+  - Install Azure Functions Core Tools; configure Aspire orchestration
+  - **Effort**: 1 day
 
-- [ ] **T1-002** [P1] Setup: Add NuGet packages (EF Core 9.0, ASP.NET Core Identity, IdentityModel, OpenTelemetry, xUnit)
-  - **File**: `src/Linksy.Api/Linksy.Api.csproj` (PackageReference additions)
-  - **Dependencies**: T1-001
-  - **Test**: `dotnet restore` completes; packages resolve with correct versions
+- [ ] **T003** `[P1]` `[infra]` Add Bicep IaC templates for Azure infrastructure (Dev/Prod)
+  - Files: `infra/main.bicep`, `infra/parameters.dev.json`, `infra/parameters.prod.json`
+  - Create parameterized Bicep for SQL Serverless, Storage, Key Vault, App Insights, Static Web Apps
+  - **Effort**: 1.5 days
 
-- [ ] **T1-003** [P1] Setup: Create SQL Server LocalDB connection string in `appsettings.Development.json` with MSSQLLocalDB instance
-  - **File**: `src/Linksy.Api/appsettings.Development.json`
-  - **Dependencies**: None
-  - **Test**: Connection string parses; LocalDB instance is accessible
+- [ ] **T004** `[P1]` `[infra]` Deploy IaC to Dev environment
+  - Files: `scripts/deploy-infra.sh`
+  - Create automation script and validate resource creation in Azure Portal
+  - **Effort**: 1 day
 
-- [ ] **T1-004** [P1] Setup: Create ApplicationDbContext with EF Core DbSet properties for all 9 entities (Tenant, ApplicationUser, TenantUserRole, Connector, Binding, SyncJob, ChangeItem, CredentialSecret, AuditEntry)
-  - **File**: `src/Linksy.Api/Data/ApplicationDbContext.cs`
-  - **Dependencies**: None (datamodel independent)
-  - **Test**: `dotnet ef dbcontext info` reports DbContext; all DbSets are discoverable
+- [ ] **T005** `[P1]` `[infra]` Configure Aspire AppHost to orchestrate all services
+  - Files: `src/Linksy.AppHost/AppHost.cs`
+  - Add API, Sync Functions, React frontend, Azure Storage emulator to orchestration
+  - **Effort**: 1 day
 
-- [ ] **T1-005** [P1] Setup: Create initial EF Core migration `001_InitialSchema` with all entity tables, indexes, and constraints (including append-only audit table constraint)
-  - **File**: `src/Linksy.Api/Migrations/[TIMESTAMP]_InitialSchema.cs`
-  - **Dependencies**: T1-004
-  - **Test**: `dotnet ef database update` creates schema; `SELECT * FROM __EFMigrationsHistory` shows applied migration
+### Documentation & Contracts (4 tasks)
 
-### 1.2 Identity Framework Setup (ASP.NET Core Identity + JWT)
+- [ ] **T006** `[P1]` `[docs]` Document API contract (OpenAPI/Swagger spec)
+  - File: `specs/001-aec-file-sync/contracts/api-spec.yaml`
+  - Define all endpoint groups and request/response models
+  - **Effort**: 1 day
 
-- [ ] **T1-006** [P1] Auth: Configure ASP.NET Core Identity in `Program.cs` with ApplicationUser, IdentityRole, and custom user store (SQL Server)
-  - **File**: `src/Linksy.Api/Program.cs`
-  - **Dependencies**: T1-004, T1-005
-  - **Test**: `app.MapIdentityApi<ApplicationUser>()` works; identity endpoints compile
+- [ ] **T007** `[P1]` `[docs]` Define Connector interface contract
+  - File: `specs/001-aec-file-sync/contracts/connector-spec.md`
+  - Document IConnector interface and change item schema
+  - **Effort**: 0.5 day
 
-- [ ] **T1-007** [P1] Auth: Create JwtTokenService to generate JWT tokens with claims (sub, email, display_name, roles) and 12-hour expiration
-  - **File**: `src/Linksy.Api/Services/JwtTokenService.cs`
-  - **Dependencies**: T1-006
-  - **Test**: Service generates valid JWT; token contains correct claims; expiration is 12 hours
+- [ ] **T008** `[P1]` `[docs]` Document event and audit schema
+  - File: `specs/001-aec-file-sync/contracts/events-schema.json`
+  - Define JSON schemas for all event types
+  - **Effort**: 0.5 day
 
-- [ ] **T1-008** [P1] Auth: Configure JWT Bearer authentication middleware in `Program.cs` to validate tokens from `Authorization: Bearer <token>` header
-  - **File**: `src/Linksy.Api/Program.cs`
-  - **Dependencies**: T1-007
-  - **Test**: Unauthenticated requests return 401; valid tokens pass through
-
-- [ ] **T1-009** [P2] Auth: Add refresh token endpoint `POST /auth/refresh` to issue new access tokens (no user re-authentication required)
-  - **File**: `src/Linksy.Api/Endpoints/AuthEndpoints.cs`
-  - **Dependencies**: T1-007, T1-008
-  - **Test**: Refresh token reissues access token with same claims; expired access tokens trigger 401 → refresh succeeds
-
-### 1.3 RBAC Setup (Tenant-Scoped Roles)
-
-- [ ] **T1-010** [P1] Auth: Create TenantUserRole junction entity linking ApplicationUser, Tenant, and IdentityRole with role name constants (TenantAdmin, Operator, Auditor)
-  - **File**: `src/Linksy.Api/Models/TenantUserRole.cs`
-  - **Dependencies**: None (model definition)
-  - **Test**: Model compiles; EF recognizes as junction entity with FK constraints
-
-- [ ] **T1-011** [P1] Auth: Create migration `002_AddTenantRoles` to add TenantUserRole table with composite key (TenantId, UserId, RoleId)
-  - **File**: `src/Linksy.Api/Migrations/[TIMESTAMP]_AddTenantRoles.cs`
-  - **Dependencies**: T1-005, T1-010
-  - **Test**: `dotnet ef database update` creates TenantUserRole table with constraints
-
-- [ ] **T1-012** [P1] Auth: Create AuthorizationService to check if user has required role for tenant (validates JWT claims against TenantUserRole table)
-  - **File**: `src/Linksy.Api/Services/AuthorizationService.cs`
-  - **Dependencies**: T1-010, T1-011
-  - **Test**: Service correctly identifies role membership; returns false for users without role; returns false for wrong tenant
-
-- [ ] **T1-013** [P2] Auth: Implement RBAC middleware `[Authorize(Roles = "TenantAdmin,Operator")]` filter on protected endpoints
-  - **File**: `src/Linksy.Api/Middleware/RbacMiddleware.cs`
-  - **Dependencies**: T1-012
-  - **Test**: Requests with required role pass; requests without role return 403
-
-### 1.4 Frontend Project Initialization
-
-- [ ] **T1-014** [P1] Setup: Create React 19 + Vite + TypeScript project in `src/frontend/` with `npm create vite@latest` template
-  - **File**: `src/frontend/package.json`, `src/frontend/tsconfig.json`
-  - **Dependencies**: None (frontend independent)
-  - **Test**: `npm run dev` in `src/frontend/` starts dev server on port 5173; ESLint passes with zero errors
-
-- [ ] **T1-015** [P1] Setup: Add dependencies (axios, React Router, shadcn/ui, Tailwind CSS 4) to `src/frontend/package.json`
-  - **File**: `src/frontend/package.json`
-  - **Dependencies**: T1-014
-  - **Test**: `npm install` succeeds; all packages resolve; TypeScript `tsc --noEmit` passes
-
-- [ ] **T1-016** [P1] Setup: Configure Vite environment variables for API base URL (`VITE_API_URL=http://localhost:5000`)
-  - **File**: `src/frontend/vite.config.ts`, `.env.development`
-  - **Dependencies**: T1-014
-  - **Test**: `import.meta.env.VITE_API_URL` resolves correctly during dev build
-
-- [ ] **T1-017** [P2] Setup: Create axios instance with JWT token interceptor (reads from cookie, handles 401 → refresh flow)
-  - **File**: `src/frontend/src/lib/api.ts`
-  - **Dependencies**: T1-016
-  - **Test**: Axios requests include `Authorization` header; 401 responses trigger refresh; retried request succeeds
-
-### 1.5 Aspire Orchestration
-
-- [ ] **T1-018** [P1] Setup: Configure `Linksy.AppHost` to orchestrate backend API and frontend React dev server
-  - **File**: `src/Linksy.AppHost/AppHost.cs`
-  - **Dependencies**: T1-002, T1-014
-  - **Test**: `dotnet run --project src/Linksy.AppHost` starts both services; Aspire dashboard available on port 15217
-
-- [ ] **T1-019** [P2] Setup: Inject CORS policy in backend to allow frontend origin (`http://localhost:5173`) only
-  - **File**: `src/Linksy.Api/Program.cs` (`.AddCors()`)
-  - **Dependencies**: T1-018
-  - **Test**: OPTIONS request from frontend succeeds; request from external origin blocked
-
-### 1.6 Testing Framework Setup
-
-- [ ] **T1-020** [P2] Setup: Create `Linksy.Api.Tests` xUnit project with Moq for mocking services
-  - **File**: `src/Linksy.Api.Tests/Linksy.Api.Tests.csproj`
-  - **Dependencies**: T1-001
-  - **Test**: `dotnet test src/Linksy.Api.Tests` discovers and runs tests
-
-- [ ] **T1-021** [P2] Setup: Create Vitest configuration for frontend unit tests with React Testing Library
-  - **File**: `src/frontend/vitest.config.ts`, `src/frontend/tsconfig.json` (test settings)
-  - **Dependencies**: T1-015
-  - **Test**: `npm run test` in `src/frontend/` runs tests; zero errors
-
-- [ ] **T1-022** [P3] Setup: Create integration test template for full stack (API + database + frontend)
-  - **File**: `src/Linksy.Api.Tests/IntegrationTestBase.cs`
-  - **Dependencies**: T1-020, T1-018
-  - **Test**: Template compiles; integration test can initialize DB
+- [ ] **T009** `[P1]` `[docs]` Create Phase 0 research notes
+  - File: `specs/001-aec-file-sync/research.md`
+  - Document technology decisions and POC links
+  - **Effort**: 1 day
 
 ---
 
-## Phase 2: Authentication & Authorization Endpoints
+## Phase 1: Foundational Infrastructure (26 days)
 
-**Goal**: Implement login, registration, and token refresh endpoints; validate JWT flow end-to-end.  
-**Duration**: 1 week  
-**Deliverables**: Auth endpoints work; frontend login form authenticates users; JWT lifecycle validated
+### Database Schema & EF Core (4 tasks)
 
-### 2.1 Entra ID SSO Integration
+- [ ] **T010** `[P1]` `[backend]` `[test]` Define EF Core entities and DbContext
+  - Files: `src/Linksy.Api/Models/`, `src/Linksy.Api/Data/LinksynContext.cs`
+  - Create 11 core entity models with relationships and indexes
+  - **Effort**: 1.5 days
 
-- [ ] **T2-001** [P1] Auth: Register headless app in Entra ID (Azure AD); capture client ID, tenant ID, and client secret
-  - **File**: Setup artifact (not code); document in docs/identity-framework.md
-  - **Dependencies**: None
-  - **Test**: Client credentials work in OAuth2 device flow or client credentials flow
+- [ ] **T011** `[P1]` `[backend]` `[test]` Configure audit table for append-only immutability
+  - Files: `src/Linksy.Api/Data/LinksynContext.cs`, `src/Linksy.Api/Models/AuditEntry.cs`
+  - Configure DB constraints preventing DELETE/UPDATE; implement hash chain
+  - **Effort**: 1 day
 
-- [ ] **T2-002** [P1] Auth: Implement Entra ID token exchange endpoint `POST /auth/entra-callback` that accepts auth code and returns JWT
-  - **File**: `src/Linksy.Api/Endpoints/AuthEndpoints.cs`
-  - **Dependencies**: T1-007, T1-008, T2-001
-  - **Test**: POST with valid Entra ID auth code returns JWT; JWT contains user claims from Entra ID
+- [ ] **T012** `[P1]` `[backend]` `[test]` Implement RBAC constraints in EF Core
+  - Files: `src/Linksy.Api/Data/LinksynContext.cs`, `src/Linksy.Api/Services/RbacService.cs`
+  - Create RbacService for tenant-scoped queries and claim-based authorization
+  - **Effort**: 1 day
 
-- [ ] **T2-003** [P2] Auth: Add user provisioning logic to `POST /auth/entra-callback` that creates ApplicationUser + TenantUserRole on first login (assigns default role)
-  - **File**: `src/Linksy.Api/Services/UserProvisioningService.cs`
-  - **Dependencies**: T2-002
-  - **Test**: First-time user login auto-creates user; subsequent logins reuse same user
+- [ ] **T013** `[P1]` `[backend]` `[test]` Create EF Core migrations
+  - Files: `src/Linksy.Api/Migrations/001_InitialSchema.cs`, `002_AuditTableConstraints.cs`
+  - Generate and configure migrations with database constraints
+  - **Effort**: 0.5 day
 
-### 2.2 Login & Registration Endpoints
+- [ ] **T014** `[P1]` `[backend]` `[test]` Unit tests: EF Core models and migrations
+  - File: `src/Linksy.Api.Tests/DataTests.cs`
+  - Test relationships, soft-delete, audit constraints, RBAC filtering
+  - **Effort**: 1 day
 
-- [ ] **T2-004** [P1] Auth: Implement `POST /auth/login` endpoint that accepts email + password (for non-SSO internal testing)
-  - **File**: `src/Linksy.Api/Endpoints/AuthEndpoints.cs`
-  - **Dependencies**: T1-008
-  - **Test**: Valid credentials return JWT; invalid credentials return 401
+### Authentication & Authorization (6 tasks)
 
-- [ ] **T2-005** [P1] Auth: Implement `POST /auth/register` endpoint that creates new ApplicationUser with email + password
-  - **File**: `src/Linksy.Api/Endpoints/AuthEndpoints.cs`
-  - **Dependencies**: T2-004
-  - **Test**: New user registration succeeds; duplicate email fails; password hashing validated
+- [ ] **T015** `[P1]` `[backend]` `[test]` Implement ASP.NET Core Identity configuration
+  - Files: `src/Linksy.Api/Services/AuthService.cs`, `src/Linksy.Api/Program.cs`
+  - Configure Identity with custom ApplicationUser model and Entra ID integration
+  - **Effort**: 1 day
 
-- [ ] **T2-006** [P1] Auth: Implement `POST /auth/logout` endpoint that invalidates tokens (optional; HttpOnly cookies can rely on expiration)
-  - **File**: `src/Linksy.Api/Endpoints/AuthEndpoints.cs`
-  - **Dependencies**: T2-004
-  - **Test**: Logout succeeds; subsequent requests with old token fail (or return 401)
+- [ ] **T016** `[P1]` `[backend]` `[test]` Implement JWT token generation and refresh logic
+  - Files: `src/Linksy.Api/Services/TokenService.cs`, `src/Linksy.Api/Models/RefreshToken.cs`
+  - Create TokenService for JWT issuance (12h expiry) and refresh tokens
+  - **Effort**: 1 day
 
-### 2.3 Token Refresh & Lifecycle
+- [ ] **T017** `[P1]` `[backend]` `[test]` Implement JWT authentication middleware
+  - Files: `src/Linksy.Api/Middleware/JwtAuthMiddleware.cs`, `src/Linksy.Api/Program.cs`
+  - Create middleware for token validation and RBAC claim extraction
+  - **Effort**: 0.5 day
 
-- [ ] **T2-007** [P1] Auth: Implement server-side refresh token storage in database (RefreshToken table: token_id, user_id, expires_at, revoked_at)
-  - **File**: `src/Linksy.Api/Models/RefreshToken.cs`
-  - **Dependencies**: T1-004
-  - **Test**: RefreshToken model compiles; EF recognizes entity
+- [ ] **T018** `[P1]` `[backend]` `[test]` Implement role-based authorization attributes
+  - Files: `src/Linksy.Api/Attributes/AuthorizeRoleAttribute.cs`, `src/Linksy.Api/Handlers/AuthorizationHandler.cs`
+  - Create `[AuthorizeRole(...)]` attribute and policy-based authorization
+  - **Effort**: 0.5 day
 
-- [ ] **T2-008** [P1] Auth: Update `POST /auth/refresh` to rotate refresh tokens (issue new refresh token, revoke old one)
-  - **File**: `src/Linksy.Api/Services/JwtTokenService.cs`
-  - **Dependencies**: T1-009, T2-007
-  - **Test**: Refresh token changes each call; old token is revoked; new access token is valid
+- [ ] **T019** `[P1]` `[backend]` `[test]` Implement Entra ID SSO integration (login endpoint)
+  - Files: `src/Linksy.Api/Endpoints/AuthEndpoints.cs`
+  - Create POST `/auth/login` endpoint for Entra ID token exchange and JWT issuance
+  - **Effort**: 1 day
 
-- [ ] **T2-009** [P2] Auth: Add token validation unit tests (expiration, claims, signature validation)
-  - **File**: `src/Linksy.Api.Tests/AuthTests.cs`
-  - **Dependencies**: T1-020, T2-008
-  - **Test**: Token tests pass with 95%+ code coverage on JwtTokenService
+- [ ] **T020** `[P1]` `[backend]` `[test]` Unit tests: Authentication and authorization
+  - File: `src/Linksy.Api.Tests/AuthTests.cs`
+  - Test JWT lifecycle, refresh tokens, role-based access, Entra ID claims
+  - **Effort**: 1 day
 
-### 2.4 Frontend Auth Integration
+### Azure Services Configuration (5 tasks)
 
-- [ ] **T2-010** [P1] UI: Create Auth context hook `useAuth()` to manage user state, login, logout, and token refresh
-  - **File**: `src/frontend/src/contexts/AuthContext.tsx`
-  - **Dependencies**: T1-017
-  - **Test**: Hook provides user, isLoading, login, logout functions; updates on auth state change
+- [ ] **T021** `[P1]` `[infra]` Set up Azure Key Vault and credential rotation pattern
+  - Files: `src/Linksy.Api/Services/CredentialService.cs`, `src/Linksy.Api/Models/CredentialRotation.cs`
+  - Create CredentialService for credential storage/retrieval and rotation triggers
+  - **Effort**: 1 day
 
-- [ ] **T2-011** [P1] UI: Create Login component with email + password form, submit to `POST /auth/login`, store JWT in memory or HttpOnly cookie
-  - **File**: `src/frontend/src/components/Auth/LoginForm.tsx`
-  - **Dependencies**: T2-010, T2-004
-  - **Test**: Form submits credentials; success redirects to dashboard; error displays message
+- [ ] **T022** `[P1]` `[infra]` Configure Azure Storage Queues for local + cloud
+  - Files: `src/Linksy.Sync/Triggers/QueueTrigger.cs`, `local.settings.json`
+  - Set up queue names and poison queue configuration
+  - **Effort**: 0.5 day
 
-- [ ] **T2-012** [P1] UI: Create ProtectedRoute wrapper to enforce authentication; unauthenticated users redirect to login
-  - **File**: `src/frontend/src/components/Auth/ProtectedRoute.tsx`
-  - **Dependencies**: T2-010
-  - **Test**: Unauthenticated access redirects to login; authenticated access allows; logout redirects to login
+- [ ] **T023** `[P1]` `[infra]` Configure Azure Blob Storage containers and lifecycle policies
+  - Files: `infra/main.bicep` (blob definitions)
+  - Create containers with lifecycle rules (24h, 7d, WORM+versioning)
+  - **Effort**: 0.5 day
 
-- [ ] **T2-013** [P2] UI: Implement token refresh flow in axios interceptor (auto-refresh on 401, retry request)
-  - **File**: `src/frontend/src/lib/api.ts` (enhance T1-017)
-  - **Dependencies**: T2-010, T1-017
-  - **Test**: 401 response triggers refresh; retried request succeeds with new token
+- [ ] **T024** `[P1]` `[infra]` Configure Application Insights for OpenTelemetry
+  - Files: `src/Linksy.Api/Program.cs`, `src/Linksy.Sync/Program.cs`, `src/Linksy.ServiceDefaults/Extensions.cs`
+  - Add OpenTelemetry 1.13.0 + App Insights exporter with tracer provider
+  - **Effort**: 1 day
 
-- [ ] **T2-014** [P3] Test: Write frontend auth integration tests (login flow, token refresh, redirect on logout)
-  - **File**: `src/frontend/src/components/Auth/Auth.test.tsx`
-  - **Dependencies**: T2-011, T2-012, T2-013
-  - **Test**: All auth flows pass; 90%+ code coverage
+- [ ] **T025** `[P1]` `[test]` Integration tests: Azure service connectivity
+  - File: `src/Linksy.Api.Tests/AzureIntegrationTests.cs`
+  - Test connectivity to SQL Serverless, Storage, Key Vault
+  - **Effort**: 1 day
 
----
+### Connector Interface & Implementation (5 tasks)
 
-## Phase 3: User Story 1 - Onboarding (Priority: P1)
+- [ ] **T026** `[P1]` `[backend]` `[test]` Define IConnector interface
+  - File: `src/Linksy.Sync/Connectors/IConnector.cs`
+  - Define interface methods: GetDeltas, ApplyChange, ValidateAccess, GetServerTime
+  - **Effort**: 0.5 day
 
-**Goal**: Enable tenant admins to complete onboarding wizard, validate connector access, and create initial binding.  
-**Duration**: 2 weeks  
-**Deliverables**: Full wizard end-to-end; both connectors validate; binding created and sync ready
+- [ ] **T027** `[P1]` `[backend]` `[test]` Implement shared connector base class
+  - File: `src/Linksy.Sync/Connectors/ConnectorBase.cs`
+  - Implement common retry logic (exponential backoff with jitter)
+  - **Effort**: 1 day
 
-### 3.1 Connector Models & Validation
+- [ ] **T028** `[P1]` `[backend]` `[test]` Implement Autodesk Construction Cloud Docs connector stub
+  - File: `src/Linksy.Sync/Connectors/AccConnector.cs`
+  - Implement IConnector for ACC: GetDeltas, ApplyChange, ValidateAccess with checksum validation
+  - **Effort**: 1.5 days
 
-- [ ] **T3-001** [P1] [US1] Model: Create Connector entity (connector_id, tenant_id, connector_type [ACC/SharePoint], health_status, last_health_check_at, created_at)
-  - **File**: `src/Linksy.Api/Models/Connector.cs`
-  - **Dependencies**: T1-004
-  - **Test**: Model compiles; EF recognizes FK to Tenant
+- [ ] **T029** `[P1]` `[backend]` `[test]` Implement SharePoint Online connector stub
+  - File: `src/Linksy.Sync/Connectors/SharePointConnector.cs`
+  - Implement IConnector for SP: GetDeltas, ApplyChange, ValidateAccess with checksum validation
+  - **Effort**: 1.5 days
 
-- [ ] **T3-002** [P1] [US1] Model: Create CredentialSecret entity (id, tenant_id, connector_id, credential_type [OAuth], encrypted_payload, key_version, rotation_requested_at, created_at)
-  - **File**: `src/Linksy.Api/Models/CredentialSecret.cs`
-  - **Dependencies**: T1-004, T3-001
-  - **Test**: Model compiles; includes EF attribute for encrypted column (immutable)
+- [ ] **T030** `[P1]` `[test]` Unit tests: Connector implementations
+  - File: `src/Linksy.Api.Tests/ConnectorContractTests.cs`
+  - Test GetDeltas, ApplyChange, ValidateAccess, rate-limit backoff
+  - **Effort**: 1.5 days
 
-- [ ] **T3-003** [P1] [US1] Service: Create ConnectorValidationService to test OAuth credentials against ACC/SharePoint APIs
-  - **File**: `src/Linksy.Api/Services/ConnectorValidationService.cs`
-  - **Dependencies**: T3-002
-  - **Test**: Service validates valid credentials; rejects invalid ones; logs attempt with timestamp
+### Durable Functions Orchestration Foundation (5 tasks)
 
-- [ ] **T3-004** [P1] [US1] Service: Create CredentialVaultService to encrypt/decrypt credentials, manage key versions, and rotation tracking
-  - **File**: `src/Linksy.Api/Services/CredentialVaultService.cs`
-  - **Dependencies**: T3-002, T3-003
-  - **Test**: Encryption round-trip succeeds; tenant isolation enforced; key versioning tracks rotations
+- [ ] **T031** `[P1]` `[backend]` `[test]` Implement Durable Entity for oscillation hold window
+  - File: `src/Linksy.Sync/Entities/HoldWindowEntity.cs`
+  - Create entity with 5-minute operation window per (tenant, binding, fileId)
+  - **Effort**: 1 day
 
-### 3.2 Binding Models & Database
+- [ ] **T032** `[P1]` `[backend]` **Implement RunBindingSyncOrchestrator (core orchestration)**
+  - File: `src/Linksy.Sync/Functions/RunBindingSyncOrchestrator.cs`
+  - Implement orchestrator function with parallel delta fetching and activity fan-out
+  - **Effort**: 2 days
 
-- [ ] **T3-005** [P1] [US1] Model: Create Binding entity (binding_id, tenant_id, connector_source_id, connector_target_id, source_path, target_path, direction [bidirectional/one-way], conflict_policy [SourceWins/TargetWins/LastWriterWins/ManualHold], schedule_cadence, is_active, created_at, last_synced_at)
-  - **File**: `src/Linksy.Api/Models/Binding.cs`
-  - **Dependencies**: T1-004, T3-001
-  - **Test**: Model compiles; FKs to Connector verified
+- [ ] **T033** `[P1]` `[backend]` **Implement activity functions**
+  - Files: `src/Linksy.Sync/Functions/GetAccDeltasActivity.cs`, `GetSpDeltasActivity.cs`, `ApplyChangeActivity.cs`, `BackoffRetryActivity.cs`, `MoveToManualHoldActivity.cs`, `WriteAuditEntryActivity.cs`
+  - Implement all 6 activity functions with error handling and state management
+  - **Effort**: 2 days
 
-- [ ] **T3-006** [P1] [US1] Migration: Create `003_AddBindings` migration with Binding table, indexes on (tenant_id, is_active), constraint on direction + conflict_policy combo
-  - **File**: `src/Linksy.Api/Migrations/[TIMESTAMP]_AddBindings.cs`
-  - **Dependencies**: T3-005
-  - **Test**: Migration applies; indexes created; queries on active bindings are efficient
+- [ ] **T034** `[P1]` `[backend]` `[test]` Implement queue trigger for manual-holds processing
+  - File: `src/Linksy.Sync/Triggers/ManualHoldQueueTrigger.cs`
+  - Create function for dequeueing and alerting operators via metrics
+  - **Effort**: 0.5 day
 
-- [ ] **T3-007** [P1] [US1] Model: Create BindingHoldState entity to track 5-minute conflict hold windows (binding_id, file_id, hold_until_at, conflicted_at, resolved_policy)
-  - **File**: `src/Linksy.Api/Models/BindingHoldState.cs`
-  - **Dependencies**: T1-004, T3-005
-  - **Test**: Model compiles; used to query active holds during sync
-
-- [ ] **T3-008** [P2] [US1] Migration: Create `004_AddBindingHoldState` migration
-  - **File**: `src/Linksy.Api/Migrations/[TIMESTAMP]_AddBindingHoldState.cs`
-  - **Dependencies**: T3-007
-  - **Test**: Migration applies; queries on active holds return correct results
-
-### 3.3 Onboarding Endpoints
-
-- [ ] **T3-009** [P1] [US1] Endpoint: `POST /api/onboarding/start` - Initiate onboarding for tenant (returns wizard session ID)
-  - **File**: `src/Linksy.Api/Endpoints/OnboardingEndpoints.cs`
-  - **Dependencies**: T1-012, T2-003
-  - **Test**: Requires TenantAdmin role; returns session ID; session is storable
-
-- [ ] **T3-010** [P1] [US1] Endpoint: `POST /api/onboarding/validate-connectors` - Validate ACC + SharePoint credentials and return connector IDs
-  - **File**: `src/Linksy.Api/Endpoints/OnboardingEndpoints.cs`
-  - **Dependencies**: T3-003, T3-004, T3-009
-  - **Test**: Valid credentials return connector IDs; invalid credentials return 400 with error details
-
-- [ ] **T3-011** [P1] [US1] Endpoint: `POST /api/onboarding/create-binding` - Create binding with validated connectors, paths, and initial conflict policy
-  - **File**: `src/Linksy.Api/Endpoints/OnboardingEndpoints.cs`
-  - **Dependencies**: T3-005, T3-010
-  - **Test**: Returns binding_id; binding is queryable; can trigger immediate sync
-
-- [ ] **T3-012** [P1] [US1] Endpoint: `POST /api/onboarding/test-access` - Test read/write on both connectors' sandbox folders
-  - **File**: `src/Linksy.Api/Endpoints/OnboardingEndpoints.cs`
-  - **Dependencies**: T3-009, T3-010
-  - **Test**: Returns { acc_readable: bool, acc_writable: bool, sharepoint_readable: bool, sharepoint_writable: bool }
-
-### 3.4 Onboarding Frontend
-
-- [ ] **T3-013** [P1] [US1] UI: Create Onboarding wizard component with 4 steps (credentials, test access, paths, review)
-  - **File**: `src/frontend/src/components/Onboarding/OnboardingWizard.tsx`
-  - **Dependencies**: T2-012, T1-017
-  - **Test**: All 4 steps render; navigation works; form state persists across steps
-
-- [ ] **T3-014** [P1] [US1] UI: Implement step 1 (ACC + SharePoint credential input with OAuth flow)
-  - **File**: `src/frontend/src/components/Onboarding/CredentialsStep.tsx`
-  - **Dependencies**: T3-013
-  - **Test**: OAuth redirect works; returns auth code; credentials stored securely
-
-- [ ] **T3-015** [P1] [US1] UI: Implement step 2 (test access validation, displays success/failure per platform)
-  - **File**: `src/frontend/src/components/Onboarding/TestAccessStep.tsx`
-  - **Dependencies**: T3-012, T3-013
-  - **Test**: Calls `/api/onboarding/test-access`; displays pass/fail per platform; allows retry
-
-- [ ] **T3-016** [P1] [US1] UI: Implement step 3 (path selection, conflict policy choice, direction toggle)
-  - **File**: `src/frontend/src/components/Onboarding/PathsStep.tsx`
-  - **Dependencies**: T3-013
-  - **Test**: Path selectors are functional; conflict policy dropdown works; direction toggle toggles
-
-- [ ] **T3-017** [P1] [US1] UI: Implement step 4 (review summary, submit to create binding, redirect to activity log)
-  - **File**: `src/frontend/src/components/Onboarding/ReviewStep.tsx`
-  - **Dependencies**: T3-011, T3-016
-  - **Test**: Summary displays all selected options; submit calls create-binding; redirect on success
-
-- [ ] **T3-018** [P2] [US1] UI: Add form validation and error handling for all steps
-  - **File**: `src/frontend/src/components/Onboarding/OnboardingWizard.tsx` (enhance)
-  - **Dependencies**: T3-013
-  - **Test**: Invalid inputs show error messages; form not submittable until valid
-
-- [ ] **T3-019** [P3] [US1] Test: Write integration tests for onboarding flow (create tenant, provision user, complete wizard)
-  - **File**: `src/Linksy.Api.Tests/OnboardingIntegrationTests.cs`
-  - **Dependencies**: T1-022, T3-011
-  - **Test**: Full flow succeeds from login to binding creation
+- [ ] **T035** `[P1]` `[test]` Unit tests: Durable orchestration and activities
+  - File: `src/Linksy.Api.Tests/OrchestrationTests.cs`
+  - Test orchestrator logic, activity mocks, hold window behavior, backoff
+  - **Effort**: 1.5 days
 
 ---
 
-## Phase 4: User Story 2 - Monitor & Manage Sync Jobs (Priority: P2)
+## Phase 2: User Story 1 – Onboarding (P1) (16 days)
 
-**Goal**: Enable operators to trigger syncs, monitor progress, resolve conflicts, and manage quarantined items.  
-**Duration**: 2.5 weeks  
-**Deliverables**: Manual sync trigger works; activity log displays jobs; conflicts can be resolved in UI; deleted items recoverable
+### Models & Services (4 tasks)
 
-### 4.1 Sync Job Models & Database
+- [ ] **T036** `[P1]` `[US1]` `[backend]` Create Binding and BindingState models
+  - Files: `src/Linksy.Api/Models/Binding.cs`, `BindingState.cs`
+  - Define properties for paths, direction, conflict policy, schedule, status
+  - **Effort**: 0.5 day
 
-- [ ] **T4-001** [P2] [US2] Model: Create SyncJob entity (job_id, binding_id, status [queued/running/completed/failed/paused], started_at, completed_at, processed_file_count, error_count, retry_count, triggered_by_user_id, triggered_at)
-  - **File**: `src/Linksy.Api/Models/SyncJob.cs`
-  - **Dependencies**: T1-004, T3-005
-  - **Test**: Model compiles; EF recognizes relationships
+- [ ] **T037** `[P1]` `[US1]` `[backend]` `[test]` Implement BindingService
+  - File: `src/Linksy.Api/Services/BindingService.cs`
+  - Implement CRUD, validation, and activation with test sync triggering
+  - **Effort**: 1 day
 
-- [ ] **T4-002** [P2] [US2] Model: Create ChangeItem entity (item_id, job_id, source_platform [ACC/SharePoint], target_platform, file_path, operation_type [create/update/delete/move/rename], checksum, source_version_id, target_version_id, conflict_detected, conflict_policy_applied, hold_expires_at, created_at)
-  - **File**: `src/Linksy.Api/Models/ChangeItem.cs`
-  - **Dependencies**: T1-004, T4-001
-  - **Test**: Model compiles; includes status tracking for holds
+- [ ] **T038** `[P1]` `[US1]` `[backend]` `[test]` Implement OnboardingService
+  - File: `src/Linksy.Api/Services/OnboardingService.cs`
+  - Implement ValidateConnector, DryRunSync, GetOnboardingStatus
+  - **Effort**: 1 day
 
-- [ ] **T4-003** [P2] [US2] Migration: Create `005_AddSyncJobsAndChanges` migration with SyncJob and ChangeItem tables
-  - **File**: `src/Linksy.Api/Migrations/[TIMESTAMP]_AddSyncJobsAndChanges.cs`
-  - **Dependencies**: T4-001, T4-002
-  - **Test**: Migration applies; queries on job status and hold state are efficient
+- [ ] **T039** `[P1]` `[US1]` `[backend]` `[test]` Implement ConnectorService
+  - File: `src/Linksy.Api/Services/ConnectorService.cs`
+  - Implement connector CRUD, health validation, credential management
+  - **Effort**: 0.5 day
 
-### 4.2 Sync Engine & Job Execution
+### API Endpoints (3 tasks)
 
-- [ ] **T4-004** [P2] [US2] Service: Create SyncEngineService to orchestrate connector polling, delta tracking, conflict detection, and retry logic
-  - **File**: `src/Linksy.Api/Services/SyncEngineService.cs`
-  - **Dependencies**: T3-003, T4-001, T4-002
-  - **Test**: Service accepts binding; returns processed change count; logs all operations
+- [ ] **T040** `[P1]` `[US1]` `[backend]` Implement Connectors endpoints
+  - File: `src/Linksy.Api/Endpoints/ConnectorsEndpoints.cs`
+  - Implement POST/GET `/api/connectors`, validate, rotate-credentials endpoints
+  - **Effort**: 1 day
 
-- [ ] **T4-005** [P2] [US2] Service: Create ConflictResolutionService to apply conflict policies (SourceWins, TargetWins, LastWriterWins, ManualHold) and enforce 5-minute hold windows
-  - **File**: `src/Linksy.Api/Services/ConflictResolutionService.cs`
-  - **Dependencies**: T4-004, T3-007
-  - **Test**: Each policy applies correctly; hold window prevents re-application for 5 minutes
+- [ ] **T041** `[P1]` `[US1]` `[backend]` Implement Bindings endpoints
+  - File: `src/Linksy.Api/Endpoints/BindingsEndpoints.cs`
+  - Implement POST/GET/PATCH/DELETE `/api/bindings` and `/activate` endpoint
+  - **Effort**: 1 day
 
-- [ ] **T4-006** [P2] [US2] Service: Create RetryService to handle exponential backoff (up to 7 retries over 120+ seconds) for transient failures and HTTP 429 throttling
-  - **File**: `src/Linksy.Api/Services/RetryService.cs`
-  - **Dependencies**: T4-004
-  - **Test**: Backoff timing is exponential; 7th retry escalates to ManualHold; metrics recorded
+- [ ] **T042** `[P1]` `[US1]` `[backend]` Implement onboarding workflow endpoints
+  - File: `src/Linksy.Api/Endpoints/OnboardingEndpoints.cs`
+  - Implement `/onboarding/validate-connector`, `/dry-run`, `/status` endpoints
+  - **Effort**: 1 day
 
-- [ ] **T4-007** [P2] [US2] Service: Create QuarantineService to move conflicted/failed items to ManualHold state and track 7-day soft-delete window
-  - **File**: `src/Linksy.Api/Services/QuarantineService.cs`
-  - **Dependencies**: T4-002, T4-005, T4-006
-  - **Test**: Items enter quarantine; 7-day expiration tracked; manual resolve removes from quarantine
+### Frontend – Onboarding Wizard (5 tasks)
 
-### 4.3 Sync Endpoints
+- [ ] **T043** `[P1]` `[US1]` `[frontend]` Create OnboardingWizard component structure
+  - File: `src/frontend/src/components/OnboardingWizard.tsx`
+  - Multi-step form: Select → Configure → Test → Review & Activate
+  - **Effort**: 1 day
 
-- [ ] **T4-008** [P2] [US2] Endpoint: `POST /api/bindings/{binding_id}/sync` - Trigger manual sync for binding (creates SyncJob, queues execution)
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T1-012, T4-004
-  - **Test**: Requires Operator role; returns job_id immediately; job begins execution
+- [ ] **T044** `[P1]` `[US1]` `[frontend]` Implement Step 1: Select connectors (OAuth)
+  - File: `src/frontend/src/components/OnboardingWizard.tsx`
+  - UI to list/register connectors with OAuth flow and health status
+  - **Effort**: 1 day
 
-- [ ] **T4-009** [P2] [US2] Endpoint: `GET /api/jobs/{job_id}` - Get job status, progress, and statistics
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T4-008, T4-001
-  - **Test**: Returns status, file count, error details; polling supported
+- [ ] **T045** `[P1]` `[US1]` `[frontend]` Implement Step 2: Configure binding (paths, conflict policy, direction)
+  - File: `src/frontend/src/components/OnboardingWizard.tsx`
+  - UI for folder selection, direction, and conflict policy configuration
+  - **Effort**: 1 day
 
-- [ ] **T4-010** [P2] [US2] Endpoint: `GET /api/bindings/{binding_id}/jobs` - List all jobs for a binding with pagination
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T4-009
-  - **Test**: Returns paginated list; filterable by status
+- [ ] **T046** `[P1]` `[US1]` `[frontend]` Implement Step 3: Test access (dry-run)
+  - File: `src/frontend/src/components/OnboardingWizard.tsx`
+  - Call validate/dry-run endpoints; display results and file preview
+  - **Effort**: 1 day
 
-- [ ] **T4-011** [P2] [US2] Endpoint: `GET /api/jobs/{job_id}/changes` - Get all change items for a job (paginated, filterable by status and operation_type)
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T4-002, T4-009
-  - **Test**: Returns paginated changes; includes conflict_detected flag
+- [ ] **T047** `[P1]` `[US1]` `[frontend]` Implement Step 4: Review and activate
+  - File: `src/frontend/src/components/OnboardingWizard.tsx`
+  - Display summary; call activate endpoint; show success/redirect
+  - **Effort**: 0.5 day
 
-- [ ] **T4-012** [P2] [US2] Endpoint: `POST /api/changes/{item_id}/resolve` - Resolve ManualHold conflict by selecting source or target version
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T4-005, T4-011
-  - **Test**: Requires Operator role; applies decision; removes hold; logs resolution
+### Integration & Testing (2 tasks)
 
-- [ ] **T4-013** [P2] [US2] Endpoint: `POST /api/changes/{item_id}/restore` - Restore soft-deleted item (remove from quarantine, re-sync to both platforms)
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T4-007, T4-012
-  - **Test**: Requires Operator role; item re-synced; quarantine entry removed
+- [ ] **T048** `[P1]` `[US1]` `[test]` Unit tests: OnboardingWizard component
+  - File: `src/frontend/src/components/__tests__/OnboardingWizard.test.tsx`
+  - Test form transitions, validation errors, API calls using React Testing Library
+  - **Effort**: 1 day
 
-- [ ] **T4-014** [P2] [US2] Endpoint: `GET /api/bindings/{binding_id}/quarantine` - List all quarantined items for a binding (filterable by date range)
-  - **File**: `src/Linksy.Api/Endpoints/SyncEndpoints.cs`
-  - **Dependencies**: T4-007, T4-013
-  - **Test**: Returns only items in quarantine; filters by date work
-
-### 4.4 Real-Time Activity Log (WebSocket)
-
-- [ ] **T4-015** [P2] [US2] Endpoint: `WebSocket /ws/activity?binding_id={id}` - Real-time activity stream for job and change events
-  - **File**: `src/Linksy.Api/Endpoints/ActivityEndpoints.cs`
-  - **Dependencies**: T4-008, T4-009
-  - **Test**: WebSocket connects; receives job status updates; disconnects cleanly
-
-- [ ] **T4-016** [P2] [US2] Service: Create ActivityBroadcastService to emit job and change events to connected WebSocket clients
-  - **File**: `src/Linksy.Api/Services/ActivityBroadcastService.cs`
-  - **Dependencies**: T4-015
-  - **Test**: Events broadcast to all connected clients for binding
-
-### 4.5 Sync Management Frontend
-
-- [ ] **T4-017** [P2] [US2] UI: Create Activity Log component displaying jobs with status, file count, error count, timestamps
-  - **File**: `src/frontend/src/components/Activity/ActivityLog.tsx`
-  - **Dependencies**: T4-010, T1-017
-  - **Test**: Displays all jobs; supports pagination; updates on manual refresh
-
-- [ ] **T4-018** [P2] [US2] UI: Create Job Details panel showing all changes for a job with conflict indicators
-  - **File**: `src/frontend/src/components/Activity/JobDetailsPanel.tsx`
-  - **Dependencies**: T4-011, T4-017
-  - **Test**: Displays changes; highlights conflicts; includes operation types
-
-- [ ] **T4-019** [P2] [US2] UI: Implement WebSocket hook `useActivityStream()` for real-time updates
-  - **File**: `src/frontend/src/hooks/useActivityStream.ts`
-  - **Dependencies**: T4-015, T4-017
-  - **Test**: Hook connects to WebSocket; updates UI on events; reconnects on disconnect
-
-- [ ] **T4-020** [P2] [US2] UI: Create Conflict Resolution modal for ManualHold items (select source or target, confirm)
-  - **File**: `src/frontend/src/components/Activity/ConflictModal.tsx`
-  - **Dependencies**: T4-012, T4-018
-  - **Test**: Modal displays both versions; selection works; submit resolves conflict
-
-- [ ] **T4-021** [P2] [US2] UI: Create Deleted Items view with filters (date range, binding, status)
-  - **File**: `src/frontend/src/components/Activity/DeletedItemsView.tsx`
-  - **Dependencies**: T4-013, T4-014
-  - **Test**: Lists quarantined items; filters work; restore button functional
-
-- [ ] **T4-022** [P2] [US2] UI: Add "Trigger Sync" button on binding details (calls POST /api/bindings/{id}/sync)
-  - **File**: `src/frontend/src/components/Bindings/BindingDetails.tsx`
-  - **Dependencies**: T4-008, T4-017
-  - **Test**: Button visible to Operator role; click triggers sync; activity log updates
-
-- [ ] **T4-023** [P3] [US2] Test: Write integration tests for manual sync, conflict resolution, and quarantine workflows
-  - **File**: `src/Linksy.Api.Tests/SyncIntegrationTests.cs`
-  - **Dependencies**: T1-022, T4-012, T4-013
-  - **Test**: Full sync workflows pass; conflicts resolved correctly
+- [ ] **T049** `[P1]` `[US1]` `[test]` End-to-end test: Onboarding workflow (sandbox)
+  - File: `specs/001-aec-file-sync/quickstart.md` (manual test steps)
+  - Document and execute: Sign in → Register connectors → Create binding → Activate
+  - **Effort**: 1 day
 
 ---
 
-## Phase 5: User Story 3 - Audit Compliance Activity (Priority: P3)
+## Phase 3: User Story 2 – Monitoring & Job Management (P2) (17 days)
 
-**Goal**: Enable auditors to review historical changes, export immutable logs, and verify no file content persisted.  
-**Duration**: 1.5 weeks  
-**Deliverables**: Audit log queryable; exports include hash verification; read-only access enforced for Auditor role
+### Models & Services (3 tasks)
 
-### 5.1 Audit Trail Models & Database
+- [ ] **T050** `[P2]` `[US2]` `[backend]` Create Job, ChangeItem, and Quarantine models
+  - Files: `src/Linksy.Api/Models/Job.cs`, `ChangeItem.cs`, `Quarantine.cs`
+  - Define properties for status, stats, retries, quarantine metadata
+  - **Effort**: 0.5 day
 
-- [ ] **T5-001** [P3] [US3] Model: Create AuditEntry entity (entry_id, tenant_id, actor_id, action_type [create/update/delete/resolve_conflict/rotate_credentials/etc], binding_id, item_id, source_metadata, target_metadata, policy_applied, timestamp_utc, content_hash_verification, created_at)
-  - **File**: `src/Linksy.Api/Models/AuditEntry.cs`
-  - **Dependencies**: T1-004
-  - **Test**: Model compiles; includes immutable server timestamp
+- [ ] **T051** `[P2]` `[US2]` `[backend]` `[test]` Implement JobService
+  - File: `src/Linksy.Api/Services/JobService.cs`
+  - Implement GetJob, ListJobs, TriggerManualSync, GetJobStats, ListChangeItems
+  - **Effort**: 1 day
 
-- [ ] **T5-002** [P3] [US3] Migration: Create `006_AddAuditTrail` migration with AuditEntry table; add database constraint preventing deletion (ON DELETE RESTRICT); add UNIQUE constraint on (entry_id, created_at) to enforce ordering
-  - **File**: `src/Linksy.Api/Migrations/[TIMESTAMP]_AddAuditTrail.cs`
-  - **Dependencies**: T5-001
-  - **Test**: Migration applies; DELETE attempt fails with constraint violation
+- [ ] **T052** `[P2]` `[US2]` `[backend]` `[test]` Implement ConflictResolutionService and QuarantineService
+  - Files: `src/Linksy.Api/Services/ConflictResolutionService.cs`, `QuarantineService.cs`
+  - Implement ResolveConflict, ListQuarantined, RestoreFile, PermanentlyDelete
+  - **Effort**: 1 day
 
-- [ ] **T5-003** [P3] [US3] Service: Create AuditService to log all sync actions, conflict resolutions, credential rotations, and user actions with hash chain verification
-  - **File**: `src/Linksy.Api/Services/AuditService.cs`
-  - **Dependencies**: T5-001, T5-002
-  - **Test**: Service logs actions; hash chain computed correctly; entry immutable after creation
+### API Endpoints (5 tasks)
 
-- [ ] **T5-004** [P3] [US3] Service: Create AuditHashChainService to compute and verify hash chain for tamper detection (SHA-256 of previous_hash + current_entry_data)
-  - **File**: `src/Linksy.Api/Services/AuditHashChainService.cs`
-  - **Dependencies**: T5-003
-  - **Test**: Hash chain computes correctly; tampering detected; verification passes for valid chains
+- [ ] **T053** `[P2]` `[US2]` `[backend]` Implement Jobs endpoints
+  - File: `src/Linksy.Api/Endpoints/JobsEndpoints.cs`
+  - Implement GET/POST `/api/jobs`, GET/POST `/api/jobs/{bindingId}/manual-sync`, etc.
+  - **Effort**: 1 day
 
-### 5.2 Audit Endpoints
+- [ ] **T054** `[P2]` `[US2]` `[backend]` Implement Activity Log endpoints
+  - File: `src/Linksy.Api/Endpoints/ActivityLogEndpoints.cs`
+  - Implement GET `/api/activity-log` with filtering by binding, event type, date
+  - **Effort**: 0.5 day
 
-- [ ] **T5-005** [P3] [US3] Endpoint: `GET /api/audit/entries` - Query audit log with filters (date range, actor, binding_id, action_type); pagination support
-  - **File**: `src/Linksy.Api/Endpoints/AuditEndpoints.cs`
-  - **Dependencies**: T1-012, T5-003
-  - **Test**: Requires Auditor role; returns filtered entries; pagination works
+- [ ] **T055** `[P2]` `[US2]` `[backend]` Implement Conflict endpoints
+  - File: `src/Linksy.Api/Endpoints/ConflictEndpoints.cs`
+  - Implement GET `/api/conflicts/manual-holds`, POST `/api/conflicts/{itemId}/resolve`
+  - **Effort**: 1 day
 
-- [ ] **T5-006** [P3] [US3] Endpoint: `GET /api/audit/entries/{entry_id}` - Get single audit entry with full metadata and hash verification status
-  - **File**: `src/Linksy.Api/Endpoints/AuditEndpoints.cs`
-  - **Dependencies**: T5-005, T5-004
-  - **Test**: Returns entry with hash_valid: true/false; read-only access enforced
+- [ ] **T056** `[P2]` `[US2]` `[backend]` Implement Quarantine endpoints
+  - File: `src/Linksy.Api/Endpoints/QuarantineEndpoints.cs`
+  - Implement GET/POST/DELETE `/api/quarantine` for listing, restoring, purging
+  - **Effort**: 1 day
 
-- [ ] **T5-007** [P3] [US3] Endpoint: `POST /api/audit/export` - Export audit log as CSV/JSON with hash chain verification metadata
-  - **File**: `src/Linksy.Api/Endpoints/AuditEndpoints.cs`
-  - **Dependencies**: T5-005, T5-004
-  - **Test**: Requires Auditor role; export includes verification metadata; file contains no persisted content
+- [ ] **T057** `[P2]` `[US2]` `[backend]` `[test]` Unit tests: Job management endpoints
+  - File: `src/Linksy.Api.Tests/JobsEndpointsTests.cs`
+  - Test listing, filtering, manual sync, role-based access
+  - **Effort**: 1 day
 
-- [ ] **T5-008** [P3] [US3] Endpoint: `GET /api/audit/verify?export_id={id}` - Verify exported audit report integrity (re-compute hash chain from export file)
-  - **File**: `src/Linksy.Api/Endpoints/AuditEndpoints.cs`
-  - **Dependencies**: T5-007
-  - **Test**: Verification succeeds for valid exports; fails if export was tampered with
+### Frontend – Activity Log & Conflict Resolution (5 tasks)
 
-### 5.3 Audit Frontend
+- [ ] **T058** `[P2]` `[US2]` `[frontend]` Create ActivityLog component
+  - File: `src/frontend/src/components/ActivityLog.tsx`
+  - Display job timeline with status badges, filtering by binding/date/status
+  - **Effort**: 1.5 days
 
-- [ ] **T5-009** [P3] [US3] UI: Create Audit Log component with filters (date range, user, binding, action type)
-  - **File**: `src/frontend/src/components/Audit/AuditLog.tsx`
-  - **Dependencies**: T5-005, T2-012
-  - **Test**: Displays audit entries; filters work; pagination enabled
+- [ ] **T059** `[P2]` `[US2]` `[frontend]` Create JobDetails modal
+  - File: `src/frontend/src/components/JobDetails.tsx`
+  - Display job stats, change list, propagation timeline
+  - **Effort**: 1 day
 
-- [ ] **T5-010** [P3] [US3] UI: Create Audit Entry detail view showing action, actor, timestamp, affected items, and hash verification status
-  - **File**: `src/frontend/src/components/Audit/AuditEntryDetail.tsx`
-  - **Dependencies**: T5-006, T5-009
-  - **Test**: Shows entry details; hash status displayed; no file content visible
+- [ ] **T060** `[P2]` `[US2]` `[frontend]` Create ConflictResolver component
+  - File: `src/frontend/src/components/ConflictResolver.tsx`
+  - Display ManualHold items with side-by-side comparison and resolution UI
+  - **Effort**: 1 day
 
-- [ ] **T5-011** [P3] [US3] UI: Create Export button and modal for audit log export (selects format, date range, confirms no-content notice)
-  - **File**: `src/frontend/src/components/Audit/AuditExportModal.tsx`
-  - **Dependencies**: T5-007, T5-009
-  - **Test**: Modal displays; export format choice works; confirmation required
+- [ ] **T061** `[P2]` `[US2]` `[frontend]` Create QuarantineView component (Deleted Items)
+  - File: `src/frontend/src/components/QuarantineView.tsx`
+  - Display quarantined files with filtering and one-click restore
+  - **Effort**: 1 day
 
-- [ ] **T5-012** [P3] [US3] UI: Add Auditor role check to routes (render Audit menu only for Auditor role)
-  - **File**: `src/frontend/src/components/Navigation/NavMenu.tsx`
-  - **Dependencies**: T2-010, T5-009
-  - **Test**: Audit menu visible only to Auditor; Other roles see 403 on direct URL access
+- [ ] **T062** `[P2]` `[US2]` `[frontend]` `[test]` Unit tests: Job monitoring components
+  - File: `src/frontend/src/components/__tests__/ActivityLog.test.tsx`, etc.
+  - Test rendering, filtering, API calls, user interactions
+  - **Effort**: 1 day
 
-- [ ] **T5-013** [P3] [US3] Test: Write integration tests for audit logging, export, and verification workflows
-  - **File**: `src/Linksy.Api.Tests/AuditIntegrationTests.cs`
-  - **Dependencies**: T1-022, T5-007, T5-008
-  - **Test**: Full audit workflows pass; export integrity verified
+### Observability & Monitoring (2 tasks)
 
----
+- [ ] **T063** `[P2]` `[US2]` `[backend]` Emit job metrics to Application Insights
+  - Files: `src/Linksy.Sync/Functions/*.cs`
+  - Log metrics: FilesProcessed, BytesTransferred, ConflictCount, RetryCount, ThrottleCount
+  - **Effort**: 1 day
 
-## Phase 6: Observability, Testing, & Polish
-
-**Goal**: Add metrics, error handling, documentation, and comprehensive test coverage across all features.  
-**Duration**: 2 weeks  
-**Deliverables**: 80%+ code coverage; observability dashboard populated; all error cases handled; docs complete
-
-### 6.1 Observability & Metrics
-
-- [ ] **T6-001** [P2] Observability: Add OpenTelemetry metrics to SyncEngineService (files_processed, bytes_transferred, conflicts_detected, retries_attempted, throttle_events)
-  - **File**: `src/Linksy.Api/Services/SyncEngineService.cs` (enhance)
-  - **Dependencies**: T4-004
-  - **Test**: Metrics emitted per binding; visible in Aspire dashboard
-
-- [ ] **T6-002** [P2] Observability: Configure OpenTelemetry exporter for Aspire dashboard and optional Jaeger/Datadog integration
-  - **File**: `src/Linksy.Api/Program.cs`, `src/Linksy.AppHost/AppHost.cs`
-  - **Dependencies**: T1-018, T6-001
-  - **Test**: Dashboard shows metrics; traces from API calls visible
-
-- [ ] **T6-003** [P2] Observability: Add structured logging to all services (ILogger with correlation IDs for tracing)
-  - **File**: All Service/*.cs files (enhance)
-  - **Dependencies**: T6-001
-  - **Test**: Logs include correlation ID; searchable by binding_id and user_id
-
-- [ ] **T6-004** [P3] Observability: Create admin dashboard component to display tenant-level metrics (jobs run, success rate, avg duration)
-  - **File**: `src/frontend/src/components/Admin/MetricsDashboard.tsx`
-  - **Dependencies**: T6-001, T1-017
-  - **Test**: Dashboard displays metrics; admin-only access enforced
-
-### 6.2 Error Handling & Resilience
-
-- [ ] **T6-005** [P1] Error: Create GlobalExceptionMiddleware to catch unhandled exceptions and return standardized error responses (400/401/403/500)
-  - **File**: `src/Linksy.Api/Middleware/GlobalExceptionMiddleware.cs`
-  - **Dependencies**: T1-008
-  - **Test**: Unhandled exceptions return 500; stack traces never leaked to client
-
-- [ ] **T6-006** [P2] Error: Add validation middleware for all API request bodies (prevent malformed JSON, invalid enum values)
-  - **File**: `src/Linksy.Api/Middleware/ValidationMiddleware.cs`
-  - **Dependencies**: T6-005
-  - **Test**: Malformed requests return 400 with validation details
-
-- [ ] **T6-007** [P2] Error: Create ConnectorErrorService to handle and retry connector-specific errors (API rate limits, auth failures, network timeouts)
-  - **File**: `src/Linksy.Api/Services/ConnectorErrorService.cs`
-  - **Dependencies**: T4-006
-  - **Test**: Retryable errors are retried; non-retryable errors fail fast
-
-- [ ] **T6-008** [P3] Error: Add user-friendly error messages in frontend error boundaries
-  - **File**: `src/frontend/src/components/ErrorBoundary.tsx`
-  - **Dependencies**: T2-012
-  - **Test**: Errors display user-friendly messages; error log available for debugging
-
-### 6.3 Security Hardening
-
-- [ ] **T6-009** [P1] Security: Add rate limiting middleware to auth endpoints (max 5 login attempts per IP per minute)
-  - **File**: `src/Linksy.Api/Middleware/RateLimitMiddleware.cs`
-  - **Dependencies**: T1-008
-  - **Test**: Rate limiting enforced; requests exceed limit get 429
-
-- [ ] **T6-010** [P2] Security: Implement CSRF token validation for state-changing requests (POST, PUT, DELETE)
-  - **File**: `src/Linksy.Api/Middleware/CsrfMiddleware.cs`
-  - **Dependencies**: T1-019
-  - **Test**: Requests without CSRF token fail; requests with valid token succeed
-
-- [ ] **T6-011** [P2] Security: Add Content-Security-Policy and X-Frame-Options headers to all responses
-  - **File**: `src/Linksy.Api/Program.cs`
-  - **Dependencies**: T1-008
-  - **Test**: Headers present in response; browser security policies enforced
-
-- [ ] **T6-012** [P2] Security: Implement input sanitization for file paths (prevent path traversal attacks)
-  - **File**: `src/Linksy.Api/Services/PathSanitizationService.cs`
-  - **Dependencies**: T4-004
-  - **Test**: Path traversal attempts blocked; valid paths allowed
-
-### 6.4 Comprehensive Testing
-
-- [ ] **T6-013** [P1] Test: Add unit tests for JwtTokenService (token generation, expiration, claims)
-  - **File**: `src/Linksy.Api.Tests/AuthTests.cs` (enhance)
-  - **Dependencies**: T1-020, T2-008
-  - **Test**: 95%+ code coverage on JwtTokenService
-
-- [ ] **T6-014** [P1] Test: Add unit tests for ConflictResolutionService (all policies, hold windows)
-  - **File**: `src/Linksy.Api.Tests/ConflictTests.cs`
-  - **Dependencies**: T1-020, T4-005
-  - **Test**: 90%+ code coverage on ConflictResolutionService
-
-- [ ] **T6-015** [P1] Test: Add unit tests for AuditHashChainService (hash computation, verification)
-  - **File**: `src/Linksy.Api.Tests/AuditTests.cs`
-  - **Dependencies**: T1-020, T5-004
-  - **Test**: 95%+ code coverage on AuditHashChainService
-
-- [ ] **T6-016** [P2] Test: Add integration tests for end-to-end onboarding flow (create tenant, login, complete wizard)
-  - **File**: `src/Linksy.Api.Tests/OnboardingE2ETests.cs`
-  - **Dependencies**: T1-022, T3-019
-  - **Test**: Full flow passes; binding created and ready for sync
-
-- [ ] **T6-017** [P2] Test: Add integration tests for end-to-end sync workflow (trigger job, process changes, resolve conflicts)
-  - **File**: `src/Linksy.Api.Tests/SyncE2ETests.cs`
-  - **Dependencies**: T1-022, T4-023
-  - **Test**: Sync job completes; conflicts resolved; quarantine works
-
-- [ ] **T6-018** [P2] Test: Add frontend unit tests for all React components (Login, Onboarding wizard, Activity log, Audit viewer)
-  - **File**: `src/frontend/src/components/**/*.test.tsx`
-  - **Dependencies**: T1-021, T3-013, T4-017, T5-009
-  - **Test**: 80%+ code coverage on components
-
-- [ ] **T6-019** [P2] Test: Add frontend integration tests with mock API server (complete user workflows)
-  - **File**: `src/frontend/src/__tests__/integration/*.test.tsx`
-  - **Dependencies**: T1-021, T6-018
-  - **Test**: User workflows pass with mocked API; error handling works
-
-- [ ] **T6-020** [P3] Test: Load test sync engine with large file counts (10k+ files per job)
-  - **File**: `src/Linksy.Api.Tests/LoadTests.cs`
-  - **Dependencies**: T1-020, T4-004
-  - **Test**: Sync handles 10k files; memory usage reasonable; performance acceptable
-
-### 6.5 Documentation & Deployment
-
-- [ ] **T6-021** [P2] Docs: Write API documentation (OpenAPI 3.1 spec with all endpoints, request/response schemas)
-  - **File**: `specs/001-aec-file-sync/contracts/api-spec.yaml`
-  - **Dependencies**: T3-011, T4-008, T5-005
-  - **Test**: Spec validates with `openapi-generator-cli`; endpoints documented
-
-- [ ] **T6-022** [P2] Docs: Write developer guide (local dev setup, running tests, deployment steps)
-  - **File**: `docs/aec-sync-developer-guide.md`
-  - **Dependencies**: T1-018
-  - **Test**: New developer can follow guide and run project locally
-
-- [ ] **T6-023** [P2] Docs: Write operator guide (triggering syncs, resolving conflicts, managing quarantine)
-  - **File**: `docs/aec-sync-operator-guide.md`
-  - **Dependencies**: T4-017, T4-020, T4-021
-  - **Test**: Operator can follow guide and perform key tasks
-
-- [ ] **T6-024** [P2] Docs: Write auditor guide (reviewing audit logs, exporting, verifying integrity)
-  - **File**: `docs/aec-sync-auditor-guide.md`
-  - **Dependencies**: T5-009, T5-011
-  - **Test**: Auditor can follow guide and export verified logs
-
-- [ ] **T6-025** [P3] Docs: Create troubleshooting guide (common errors, recovery steps)
-  - **File**: `docs/aec-sync-troubleshooting.md`
-  - **Dependencies**: T6-005, T6-007
-  - **Test**: All error scenarios documented with recovery steps
-
-- [ ] **T6-026** [P2] Deploy: Create Dockerfile for API service (production-ready image)
-  - **File**: `Dockerfile.api`
-  - **Dependencies**: T1-001
-  - **Test**: Image builds; container runs; health check works
-
-- [ ] **T6-027** [P2] Deploy: Create Dockerfile for React frontend (production build)
-  - **File**: `Dockerfile.frontend`
-  - **Dependencies**: T1-014
-  - **Test**: Image builds; serves optimized React bundle; routing works
-
-- [ ] **T6-028** [P2] Deploy: Create Docker Compose configuration for local multi-container development
-  - **File**: `docker-compose.yml`
-  - **Dependencies**: T6-026, T6-027, T1-003
-  - **Test**: `docker-compose up` starts all services; health checks pass
-
-- [ ] **T6-029** [P3] Deploy: Set up CI/CD pipeline (GitHub Actions: build, test, deploy to staging)
-  - **File**: `.github/workflows/ci-cd.yml`
-  - **Dependencies**: T1-020, T1-021
-  - **Test**: Pipeline runs on PR; tests pass; artifacts uploaded
-
-### 6.6 Final Validation
-
-- [ ] **T6-030** [P1] Validate: Verify all 5 success criteria are measurable and met (SC-001 through SC-005)
-  - **File**: Metrics collection scripts
-  - **Dependencies**: All phases
-  - **Test**: Metrics dashboard shows all SCs tracked; pilot customers surveyed
-
-- [ ] **T6-031** [P1] Validate: Ensure 80%+ code coverage across backend (API + Services)
-  - **File**: Coverage reports
-  - **Dependencies**: T6-013 through T6-019
-  - **Test**: `dotnet test /p:CollectCoverage=true` reports 80%+ coverage
-
-- [ ] **T6-032** [P1] Validate: Ensure 80%+ code coverage across frontend (React components)
-  - **File**: Coverage reports
-  - **Dependencies**: T6-018, T6-019
-  - **Test**: `npm run coverage` reports 80%+ coverage
-
-- [ ] **T6-033** [P2] Validate: Run full end-to-end test suite (all 3 user stories, all roles, all error scenarios)
-  - **File**: Test results document
-  - **Dependencies**: T6-016, T6-017, T6-019
-  - **Test**: All E2E tests pass; no known blockers
-
-- [ ] **T6-034** [P3] Validate: Conduct security review (OWASP Top 10, JWT implementation, encryption, auth flow)
-  - **File**: Security audit report
-  - **Dependencies**: T6-009 through T6-012
-  - **Test**: No high-severity findings; all low findings documented with remediation plan
+- [ ] **T064** `[P2]` `[US2]` `[backend]` Implement alert rules for job failures and throttling
+  - File: `infra/main.bicep` (App Insights alert rules)
+  - Create alerts for job success rate and throttling spikes
+  - **Effort**: 1 day
 
 ---
 
-## Task Dependencies & Parallelization
+## Phase 4: User Story 3 – Audit & Compliance (P3) (12 days)
 
-### Critical Path (Blocking Dependencies)
+### Models & Services (3 tasks)
 
-```
-Phase 1 Setup (T1-001 → T1-022)
-    ↓
-Phase 2 Auth (T2-001 → T2-014)
-    ↓
-Phase 3 Onboarding (T3-001 → T3-019) [can run in parallel with Phase 4/5 after T2-014]
-    ↓ (depends on bindings)
-Phase 4 Sync (T4-001 → T4-023)
-    ↓ (depends on SyncJob/ChangeItem models)
-Phase 5 Audit (T5-001 → T5-013)
-    ↓
-Phase 6 Polish (T6-001 → T6-034)
-```
+- [ ] **T065** `[P3]` `[US3]` `[backend]` Create AuditEntry model with hash chain
+  - File: `src/Linksy.Api/Models/AuditEntry.cs`
+  - Implement hash chain computation (SHA-256) for tamper detection
+  - **Effort**: 1 day
 
-### Parallelizable Sections
+- [ ] **T066** `[P3]` `[US3]` `[backend]` `[test]` Implement AuditService
+  - File: `src/Linksy.Api/Services/AuditService.cs`
+  - Implement WriteAuditEntry, GetAuditEntries, ExportAuditLog, ValidateAuditChain
+  - **Effort**: 1.5 days
 
-- **Phase 1**: Backend (T1-001 to T1-022) can run in parallel with Frontend (T1-014 to T1-017)
-- **Phase 2**: Auth endpoints (T2-001 to T2-009) can run in parallel with Frontend auth (T2-010 to T2-014)
-- **Phase 3**: Connector models (T3-001 to T3-004) can run in parallel with Binding models (T3-005 to T3-008)
-- **Phase 4**: Sync engine (T4-001 to T4-007) can run in parallel with Frontend activity log (T4-017 to T4-022)
-- **Phase 5**: Audit backend (T5-001 to T5-008) can run in parallel with Frontend audit (T5-009 to T5-012)
-- **Phase 6**: Unit tests (T6-013 to T6-015) can run in parallel with Documentation (T6-021 to T6-025)
+- [ ] **T067** `[P3]` `[US3]` `[backend]` `[test]` Implement audit export to Blob Storage
+  - File: `src/Linksy.Api/Services/AuditService.cs`
+  - ExportAuditLog writes JSON to Blob with WORM + versioning
+  - **Effort**: 1 day
 
-### Estimated Duration by Phase
+### API Endpoints (2 tasks)
 
-- **Phase 1**: 7 days (infrastructure)
-- **Phase 2**: 7 days (auth + JWT lifecycle)
-- **Phase 3**: 10 days (P1 onboarding feature)
-- **Phase 4**: 12 days (P2 sync + monitor feature)
-- **Phase 5**: 8 days (P3 audit feature)
-- **Phase 6**: 10 days (testing, observability, docs, deployment)
+- [ ] **T068** `[P3]` `[US3]` `[backend]` Implement Audit endpoints
+  - File: `src/Linksy.Api/Endpoints/AuditEndpoints.cs`
+  - Implement GET `/api/audit-log`, POST `/api/audit-log/export`, `/validate-chain`
+  - **Effort**: 1 day
 
-**Total**: ~54 days (~8 weeks) for MVP with 80%+ code coverage and full test suite
+- [ ] **T069** `[P3]` `[US3]` `[backend]` `[test]` Unit tests: Audit endpoints
+  - File: `src/Linksy.Api.Tests/AuditEndpointsTests.cs`
+  - Test listing, filtering, export, chain validation, RBAC
+  - **Effort**: 1 day
 
----
+### Frontend – Audit Log & Compliance (3 tasks)
 
-## Role-Based Task Assignment Recommendations
+- [ ] **T070** `[P3]` `[US3]` `[frontend]` Create AuditLog component
+  - File: `src/frontend/src/components/AuditLog.tsx`
+  - Display audit table with filtering by binding, date, action type
+  - **Effort**: 1 day
 
-### Backend Developer
-- Phase 1: T1-001 through T1-022 (all backend setup)
-- Phase 2: T2-001 through T2-009 (auth endpoints)
-- Phase 3: T3-001 through T3-012 (connector/binding models + endpoints)
-- Phase 4: T4-001 through T4-016 (sync engine + endpoints)
-- Phase 5: T5-001 through T5-008 (audit backend)
-- Phase 6: T6-001 through T6-008, T6-013 through T6-015, T6-021 through T6-029
+- [ ] **T071** `[P3]` `[US3]` `[frontend]` Create AuditExporter component
+  - File: `src/frontend/src/components/AuditExporter.tsx`
+  - UI to select export parameters and download JSON file
+  - **Effort**: 1 day
 
-### Frontend Developer
-- Phase 1: T1-014 through T1-017, T1-021 (React setup + testing framework)
-- Phase 2: T2-010 through T2-014 (auth UI)
-- Phase 3: T3-013 through T3-019 (onboarding wizard)
-- Phase 4: T4-017 through T4-023 (activity log + conflict resolution)
-- Phase 5: T5-009 through T5-012 (audit viewer)
-- Phase 6: T6-004, T6-008, T6-018 through T6-019, T6-022 through T6-034
+- [ ] **T072** `[P3]` `[US3]` `[frontend]` Create ComplianceReport component
+  - File: `src/frontend/src/components/ComplianceReport.tsx`
+  - Display compliance verification and audit chain validation results
+  - **Effort**: 1 day
 
-### QA / Test Engineer
-- Phase 1: T1-020, T1-021, T1-022 (test framework setup)
-- Phases 2-5: T*-End (integration tests for each phase)
-- Phase 6: T6-013 through T6-033 (comprehensive test suite + coverage)
+### Data Export & Testing (2 tasks)
+
+- [ ] **T073** `[P3]` `[US3]` `[backend]` Implement WORM + versioning validation
+  - File: `src/Linksy.Api/Services/ComplianceService.cs`
+  - Verify Blob policies; document compliance checklist
+  - **Effort**: 0.5 day
+
+- [ ] **T074** `[P3]` `[US3]` `[test]` Test audit export and immutability
+  - File: `src/Linksy.Api.Tests/ComplianceTests.cs`
+  - Test export generation, WORM enforcement, no file content
+  - **Effort**: 1 day
 
 ---
 
-## Success Criteria Validation
+## Phase 5: Polish & Operations (21 days)
 
-Before marking Phase complete, verify:
-- ✅ All P1 (critical path) tasks completed
-- ✅ All P2 (required) tasks completed
-- ✅ P3 (polish) tasks completed or deferred with documented reason
-- ✅ Integration tests pass for all completed features
-- ✅ No known blockers or tech debt
-- ✅ Code coverage >= target (80%+)
-- ✅ Documentation updated
+### Documentation & Guides (4 tasks)
+
+- [ ] **T075** `[P3]` `[docs]` Create data model documentation
+  - File: `specs/001-aec-file-sync/data-model.md`
+  - Document all entities, relationships, state transitions, validation rules
+  - **Effort**: 1 day
+
+- [ ] **T076** `[P3]` `[docs]` Create operational playbooks
+  - Files: `specs/001-aec-file-sync/playbooks/credential-rotation.md`, etc.
+  - Step-by-step procedures for operators and support teams
+  - **Effort**: 1.5 days
+
+- [ ] **T077** `[P3]` `[docs]` Create developer guide
+  - File: `specs/001-aec-file-sync/dev-guide.md`
+  - Local setup, testing, adding connectors, debugging traces
+  - **Effort**: 1 day
+
+- [ ] **T078** `[P3]` `[docs]` Update quickstart guide with all workflows
+  - File: `specs/001-aec-file-sync/quickstart.md`
+  - Add sections: Setup, Onboarding, Job Management, Monitoring, Audit
+  - **Effort**: 1 day
+
+### Observability & Logging (3 tasks)
+
+- [ ] **T079** `[P3]` `[backend]` Implement comprehensive structured logging
+  - Files: `src/Linksy.Api/Program.cs`, `src/Linksy.Sync/Program.cs`
+  - Add correlation IDs, job lifecycle logs, API call logging
+  - **Effort**: 1 day
+
+- [ ] **T080** `[P3]` `[backend]` Create Application Insights dashboard
+  - File: `infra/monitoring-dashboard.bicep`
+  - Dashboard: Job success rate, latency, throttle events, ManualHold count
+  - **Effort**: 1 day
+
+- [ ] **T081** `[P3]` `[backend]` Implement health check endpoints
+  - File: `src/Linksy.Api/Endpoints/HealthEndpoints.cs`
+  - Implement `/health` and `/health/deep` endpoints
+  - **Effort**: 0.5 day
+
+### Performance & Resilience (3 tasks)
+
+- [ ] **T082** `[P3]` `[backend]` Add caching layer for connector metadata
+  - File: `src/Linksy.Api/Services/ConnectorService.cs`
+  - Cache connector details (TTL 5 minutes) with invalidation
+  - **Effort**: 0.5 day
+
+- [ ] **T083** `[P3]` `[backend]` Implement circuit breaker for external APIs
+  - File: `src/Linksy.Sync/Connectors/ConnectorBase.cs`
+  - Use Polly library for circuit breaker pattern
+  - **Effort**: 1 day
+
+- [ ] **T084** `[P3]` `[backend]` `[test]` Load test: Job orchestration under concurrent bindings
+  - File: `src/Linksy.Api.Tests/LoadTests.cs`
+  - Simulate 100+ concurrent bindings; verify SC-003 compliance
+  - **Effort**: 1.5 days
+
+### Frontend Refinements (4 tasks)
+
+- [ ] **T085** `[P3]` `[frontend]` Implement token refresh UI flow
+  - File: `src/frontend/src/lib/api.ts`
+  - Intercept 401; auto-refresh token and retry
+  - **Effort**: 0.5 day
+
+- [ ] **T086** `[P3]` `[frontend]` Add loading and error states to all components
+  - Files: `src/frontend/src/components/*.tsx`
+  - Use shadcn/ui Spinner for loading; ErrorAlert for errors
+  - **Effort**: 1 day
+
+- [ ] **T087** `[P3]` `[frontend]` Implement dark mode support
+  - Files: `src/frontend/src/index.css`, `tailwind.config.ts`
+  - Configure Tailwind dark mode; add theme toggle
+  - **Effort**: 0.5 day
+
+- [ ] **T088** `[P3]` `[frontend]` Add accessibility improvements (a11y)
+  - Files: `src/frontend/src/components/**/*.tsx`
+  - Add ARIA labels, keyboard navigation, screen reader testing
+  - **Effort**: 1 day
+
+### Testing & QA (4 tasks)
+
+- [ ] **T089** `[P3]` `[test]` Integration test suite: Full workflow end-to-end
+  - File: `src/Linksy.Api.Tests/E2eTests.cs`
+  - Test complete journey: Sign in → Onboard → Sync → Monitor → Resolve → Audit
+  - **Effort**: 2 days
+
+- [ ] **T090** `[P3]` `[test]` Performance test: Sync latency and throughput
+  - File: `src/Linksy.Api.Tests/PerformanceTests.cs`
+  - Measure end-to-end latency and throughput; verify SC-003
+  - **Effort**: 1.5 days
+
+- [ ] **T091** `[P3]` `[test]` Security test: RBAC enforcement and audit trail
+  - File: `src/Linksy.Api.Tests/SecurityTests.cs`
+  - Verify role enforcement and audit coverage
+  - **Effort**: 1 day
+
+- [ ] **T092** `[P3]` `[test]` Manual testing checklist (QA)
+  - File: `specs/001-aec-file-sync/testing-checklist.md`
+  - Document smoke/regression tests with expected results
+  - **Effort**: 0.5 day
+
+### Deployment & Handoff (3 tasks)
+
+- [ ] **T093** `[P3]` `[infra]` Create production IaC and deployment pipeline
+  - Files: `infra/parameters.prod.json`, `.github/workflows/deploy-prod.yml`
+  - Production Bicep; deploy script with validation
+  - **Effort**: 1.5 days
+
+- [ ] **T094** `[P3]` `[docs]` Create runbooks for Ops team
+  - Files: `specs/001-aec-file-sync/runbooks/scaling.md`, etc.
+  - Procedures for scaling, incident response, credential rotation
+  - **Effort**: 1 day
+
+- [ ] **T095** `[P3]` `[docs]` Create user onboarding guide for customers
+  - File: `specs/001-aec-file-sync/customer-guide.md`
+  - How to sign up, authenticate, troubleshoot with screenshots
+  - **Effort**: 1 day
 
 ---
 
-## Next Steps
+## Effort Summary
 
-1. **Assign Tasks**: Distribute tasks to backend and frontend developers based on expertise and availability
-2. **Create Backlog**: Import tasks into Azure DevOps or GitHub Projects (link to this file)
-3. **Set Milestones**: Map phases to sprint/release cycles
-4. **Generate Code**: Use Phase 1 tasks to generate project scaffold, then Phase 2 for auth stubs, etc.
-5. **Track Progress**: Update task status weekly; escalate blockers immediately
+| Phase | Tasks | Effort | Duration |
+|-------|-------|--------|----------|
+| Phase 0 (Setup) | 9 | 11 days | 2 weeks |
+| Phase 1 (Foundation) | 26 | 26 days | 4-5 weeks |
+| Phase 2 (US1 Onboarding) | 16 | 16 days | 2-3 weeks |
+| Phase 3 (US2 Monitoring) | 17 | 17 days | 2-3 weeks |
+| Phase 4 (US3 Audit) | 12 | 12 days | 2 weeks |
+| Phase 5 (Polish) | 21 | 21 days | 3 weeks |
+| **TOTAL** | **102** | **~103 days** | **6-7 months** (with parallelization) |
+
+---
+
+## Success Criteria Mapping
+
+| Success Criterion | Key Tasks |
+|-------------------|-----------|
+| **SC-001**: 90% users onboard in <10 min | T043-T048 (Wizard UX) |
+| **SC-002**: 99.5% daily job success | T032-T035 (Orchestration) |
+| **SC-003**: 95% of changes in <10 min | T032-T034 (Latency) |
+| **SC-004**: ≥4/5 customer satisfaction | T058-T062 (UI/UX) |
+| **SC-005**: Zero file content persisted | T065-T074 (Audit) |
+
+---
+
+## Notes & Assumptions
+
+- **Test Data**: Sandbox ACC and SharePoint accounts available
+- **External APIs**: ACC and SP APIs stable; plan includes fault tolerance
+- **Team Composition**: 2 backend, 1 frontend, 1 DevOps engineer
+- **Deployment Target**: Azure (dev and prod tenants)
+- **Scope Exclusions**: Multi-region DR, webhook hardening, connector SDK marketplace, API Management
 
