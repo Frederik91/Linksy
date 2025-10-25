@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-25
 ## Active Technologies
 - .NET 9.0 SDK (backend), Node.js 22 LTS + TypeScript 5.3+ (frontend) (001-aec-file-sync)
 - SQL Server (via EF Core); audit trail in append-only table; transient encrypted file cache (24-hour retention, no persistence) (001-aec-file-sync)
+- .NET 9.0 (backend) + TypeScript 5.3+ (frontend) (001-aec-file-sync)
+- Azure SQL Database (Serverless) + Azure Blob Storage (transient cache, quarantine, audit exports) + Azure Table Storage (optional state cache) (001-aec-file-sync)
 
 ### Backend
 - **.NET 9.0** (SDK & Target Framework)
@@ -153,6 +155,7 @@ dotnet publish -c Release            # Publish API for production
 6. **Git Ignore**: `.gitignore` properly excludes build artifacts (bin/, obj/, dist/, node_modules/) and environment files (.env)
 
 ## Recent Changes
+- 001-aec-file-sync: Added .NET 9.0 (backend) + TypeScript 5.3+ (frontend)
 - 001-aec-file-sync: Added .NET 9.0 SDK (backend), Node.js 22 LTS + TypeScript 5.3+ (frontend)
 
 - **002-project-setup**: Implemented complete project scaffold with Aspire 9.5.1

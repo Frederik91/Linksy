@@ -17,8 +17,77 @@
 - Q: How is audit trail immutability enforced? → A: Append-only database table with server-side timestamp and database constraints preventing deletion; audit records writable by system only via RBAC; compliance verification includes hash chain validation during export to detect post-hoc tampering.
 - Q: How will the backend API authenticate requests from the React frontend? → A: JWT Bearer tokens issued by the backend via ASP.NET Core Identity with refresh token support for extended sessions; stateless, supports user-level RBAC and audit trails.
 - Q: What user roles and permissions model will govern access to portal features? → A: Three-tier RBAC (Tenant Admin, Operator, Auditor) scoped per tenant; Tenant Admins assign roles via management portal; claims-based authorization in API enforces role-based access to binding management, job controls, conflict resolution, and audit logs.
+- Q: What is the target platform and architectural approach for the MVP? → A: Deploy to Azure using serverless and event-driven patterns: Azure Static Web Apps (React SPA frontend), Azure Functions (HTTP-triggered control plane API in isolated .NET 9), Durable Functions (sync orchestrations with activity functions for delta operations), Azure SQL Serverless (primary relational store for metadata and audit), Azure Storage Queues (change items, throttled retries, manual holds, audit exports), Azure Key Vault (encrypted credentials), and Azure Blob Storage with lifecycle policies (transient cache 24h, quarantine 7d, audit exports with WORM + versioning for compliance). Entra ID for SSO, ASP.NET Core Identity for app-issued JWT + RBAC, Application Insights for OpenTelemetry metrics and tracing. This minimizes idle cost, simplifies operational overhead, and supports all functional and success criteria targets.
 
-## User Scenarios & Testing *(mandatory)*
+## Architecture & Technology Stack *(mandatory)*
+
+### Platform & Hosting
+
+| Layer | Technology | Rationale |
+|-------|-----------|-----------|
+| **Frontend** | Azure Static Web Apps (React SPA, TypeScript, Vite, Tailwind CSS, shadcn/ui) | Global CDN, near-zero idle cost, built-in auth hooks for future extensions. |
+| **Control Plane API** | Azure Functions (HTTP-triggered, isolated .NET 9 process) on Consumption Plan | Pay-per-execution, auto-scales bursts, minimal idle footprint. |
+| **Job Orchestration** | Durable Functions (.NET 9) with orchestrator & activity patterns | Reliable async task coordination, state management via Durable Entities, built-in retry logic. |
+| **Identity** | Entra ID (B2E SSO) + ASP.NET Core Identity | Tenant admins authenticate via org identity; backend issues JWT (12h) + refresh tokens for frontend; Identity tables in app DB avoid extra services. |
+| **Primary Data Store** | Azure SQL Database (Serverless tier) | Auto-pause when idle, append-only audit tables with DB constraints, transactional consistency, RBAC via database roles. |
+| **Messaging** | Azure Storage Queues (MVP); upgrade to Service Bus Standard with sessions for strict FIFO if per-binding ordering becomes critical | Cheapest option for MVP; poison queues and visibility timeouts for resilience. |
+| **Credentials & Secrets** | Azure Key Vault | Encrypted external connector credentials (ACC, SP app-only); rotation function updates KV and pauses/resumes bindings. |
+| **File & Cache Storage** | Azure Blob Storage with lifecycle policies | `transient-cache` container (24h auto-delete), `quarantine` container (7d auto-delete), `audit-exports` with WORM + versioning for immutability and tamper-evidence. |
+| **Observability** | Application Insights (Basic) + OpenTelemetry 1.13.0 | Per-tenant metrics (files processed, bytes, conflicts, retries, throttles, DLQ counts), distributed traces, alerting. |
+| **Infrastructure-as-Code** | Bicep or Terraform | Single parameterized template for Dev/Prod/Staging environments. |
+
+### Data Model *(Relational Core in Azure SQL)*
+
+| Table | Purpose | Notes |
+|-------|---------|-------|
+| `Tenants` | Customer organizations | Id, Name, BillingProfile, etc. |
+| `ApplicationUsers` | Portal users linked to Entra ID | Id, Email, DisplayName, EntraObjectId; managed via ASP.NET Core Identity. |
+| `UserRoles` | Tenant-scoped RBAC assignments | UserId, TenantId, Role (Tenant Admin / Operator / Auditor). |
+| `Connectors` | External platform instances | Id, TenantId, Kind (ACC \| SP), KeyVaultRef (for secrets), Health, LastValidatedAt, etc. |
+| `Bindings` | Folder sync configurations | Id, TenantId, AccConnectorId, SpConnectorId, AccPath, SpPath, Direction, ConflictPolicy, Schedule, Status, etc. |
+| `BindingState` | Incremental sync checkpoints | BindingId, AccDeltaToken, SpDeltaToken, LastSyncAt, etc. (or store in Durable Entity + Table Storage for lower latency). |
+| `Jobs` | Sync job execution records | Id, BindingId, Status, StartedAt, EndedAt, StatsJson (files processed, bytes, errors), etc. |
+| `ChangeItems` | Individual file deltas within a job | Id, JobId, FileKey, Action (Create/Update/Move/Delete/Rename), SourceVersion, TargetVersion, Retries, Status, DlqReason, etc. |
+| `Quarantine` | Soft-deleted and conflicted files | Id, BindingId, FileKey, Reason (Conflict / SoftDelete), CreatedAt, ExpiresAt (7d), VersionRefsJson, RestoredAt (nullable). |
+| `AuditEntries` | **Append-only** immutable audit trail | Id, TenantId, BindingId, At (server timestamp), Actor (UserId or System), Action, DetailsJson, PrevHash (for chain), Hash (for integrity). DB constraint prevents update/delete; system writes via RBAC role only. |
+| `CredentialRotation` | Rotation history & state | Id, ConnectorId, TriggeredBy, TriggeredAt, ValidatedAt, Status (Pending / Success / Failed). |
+
+### Job Orchestration (Durable Functions)
+
+**Orchestrator per Sync Job**:
+- Load binding state & checkpoints.
+- Fetch deltas from both ACC and SP.
+- Fan out change items to activity functions for processing (in parallel where safe).
+- Check oscillation hold window per `(tenant, binding, fileId)` using Durable Entity before applying changes.
+- Aggregate results and write audit entries.
+- Update binding state with new delta tokens.
+
+**Activity Functions**:
+- `GetAccDeltas(state)` – Poll ACC with delta token, return list of `ChangeItem`s.
+- `getSpDeltas(state)` – Poll SP with delta token, return list of `ChangeItem`s.
+- `ApplyChange(change)` – Attempt upload/download/delete with checksum validation.
+- `BackoffRetry(change, exception)` – Exponential backoff with jitter; move to queue or DLQ after exhausting 7 retries.
+- `MoveToManualHold(change, reason)` – Write to `ManualHold` queue and alert operator via metrics.
+- `WriteAuditEntry(entry)` – Append immutable record; compute hash chain.
+
+**Durable Entities**:
+- `HoldWindowEntity(tenant:binding:fileId)` – Implements 5-minute oscillation prevention: queues opposite-side edits during the window.
+
+**Triggers**:
+- **Timer trigger** – Scheduled syncs per binding (hourly / on-demand interval).
+- **HTTP trigger (webhook receiver)** – ACC and SP webhook events with signature validation; fallback to polling if unhealthy.
+- **Queue trigger** – Process change items from `changes` queue and handle `throttled-retry` backlog.
+
+### Cost & Operations Profile
+
+- **Idle cost near zero**: Functions + Storage (queues/tables/blobs) + SQL Serverless scale to zero.
+- **No container orchestration overhead**: No Kubernetes, AKS, or Container Apps.
+- **Simple scaling**: Auto-scale based on queue depth and function load.
+- **Observability**: Application Insights dashboard + alert rules for 429 spikes, job failure %, latency SLOs.
+- **Compliance & audit**: Append-only SQL tables + WORM Blob exports = auditable, immutable log.
+- **MVP exclusions** (defer to later): API Management, multi-region DR, real-time webhook hardening, Service Bus sessions.
+
+
 
 ### User Story 1 - Onboard a New Tenant Sync (Priority: P1)
 
