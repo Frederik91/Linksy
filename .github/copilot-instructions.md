@@ -15,15 +15,17 @@ tests/
 
 ## Commands
 
-# Add commands for .NET 8 (backend), Node.js 18+ (frontend React)
+# Add commands for .NET 8 (backend), Node.js 22 LTS (frontend React 19+ with TypeScript)
 
-## Code Style
-
-.NET 8 (backend), Node.js 18+ (frontend React): Follow standard conventions
+.NET 8 (backend), Node.js 22 LTS (frontend React 19+ with TypeScript): Follow standard conventions
 
 ## Recent Changes
 
-- 002-project-setup: Added .NET 8 (backend), Node.js 18+ (frontend React)
+- 002-project-setup: Added .NET 8 (backend), Node.js 22 LTS (frontend React 19+ with TypeScript)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+
+## Reference Documents
+
+- `docs/tailwindcss-v4.md` — Detailed Tailwind CSS v4 migration notes and guidance. AI code generation and migration tooling should consult this document when producing Tailwind-related code or performing upgrades from v3 to v4.
