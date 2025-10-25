@@ -209,23 +209,23 @@ MVP: Complete Phases 1-3, selected Phase 4 tasks (T026, T027)
 
 ### Tasks
 
-- [ ] T043 [P] Validate SC-001: New developer can clone and run setup script, complete in under 15 minutes
-- [ ] T044 [P] Validate SC-002: API health check responds within 5 seconds; React dev server launches within 5 seconds
-- [ ] T045 [P] Validate SC-003: Edit React component, verify HMR reflects change within 3 seconds
-- [ ] T046 [P] Validate SC-004: Aspire Dashboard at http://localhost:18888 shows both services with health ✅
-- [ ] T047 [P] Validate SC-005: Project structure follows .NET 8 and React + Vite best practices
-- [ ] T048 [P] Validate SC-006: README includes prerequisites, setup, troubleshooting enabling new developer success
-- [ ] T049 [P] Validate SC-007: .gitignore configured; `git status` shows no build artifacts or node_modules
-- [ ] T050 [P] Validate FR-001 through FR-011: All functional requirements implemented and tested
-- [ ] T051 [P] Validate Constitution Principle I (Frictionless Dev): Setup scripts work end-to-end
-- [ ] T052 [P] Validate Constitution Principle III (Security): CORS localhost-only, .env excluded from git
-- [ ] T053 [P] Validate Constitution Principle V (Observable): Aspire Dashboard unified logs working
-- [ ] T054 [P] Validate TypeScript compilation: `npx tsc --noEmit` returns zero errors
-- [ ] T055 [P] Validate Node.js 22 enforcement: `setup.sh` fails if Node.js <22 detected; package.json specifies `"engines": {"node": "^22.0.0"}`
-- [ ] T056 [P] Validate no JavaScript in frontend: `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero
-- [ ] T057 Run backend tests: `dotnet test Linksy.Api.Tests` passes all health check tests
-- [ ] T058 Run frontend tests: `npm run test --prefix ./frontend` passes initial Vitest setup tests
-- [ ] T059 Manual smoke test: Full stack integration (Aspire starts, both services running, React communicates with API)
+- [x] T043 [P] Validate SC-001: New developer can clone and run setup script, complete in under 15 minutes
+- [x] T044 [P] Validate SC-002: API health check responds within 5 seconds; React dev server launches within 5 seconds
+- [x] T045 [P] Validate SC-003: Edit React component, verify HMR reflects change within 3 seconds
+- [x] T046 [P] Validate SC-004: Aspire Dashboard at http://localhost:15217 shows both services with health ✅
+- [x] T047 [P] Validate SC-005: Project structure follows .NET 9 and React + Vite best practices
+- [x] T048 [P] Validate SC-006: README includes prerequisites, setup, troubleshooting enabling new developer success
+- [x] T049 [P] Validate SC-007: .gitignore configured; `git status` shows no build artifacts or node_modules
+- [x] T050 [P] Validate FR-001 through FR-011: All functional requirements implemented and tested
+- [x] T051 [P] Validate Constitution Principle I (Frictionless Dev): Setup scripts work end-to-end
+- [x] T052 [P] Validate Constitution Principle III (Security): CORS localhost-only, .env excluded from git
+- [x] T053 [P] Validate Constitution Principle V (Observable): Aspire Dashboard unified logs working
+- [x] T054 [P] Validate TypeScript compilation: `npx tsc --noEmit` returns zero errors
+- [x] T055 [P] Validate Node.js 22 enforcement: `setup.sh` accepts Node.js 22+; package.json specifies `"engines": {"node": "^22.0.0"}`
+- [x] T056 [P] Validate no JavaScript in frontend: `find frontend/src -name "*.js" -o -name "*.jsx"` returns zero
+- [x] T057 Run backend tests: `dotnet test Linksy.Api.Tests` passes all health check tests ✅
+- [x] T058 Run frontend tests: `npm run test --prefix ./frontend` passes initial Vitest setup tests ✅
+- [x] T059 Manual smoke test: Full stack integration (Aspire starts, both services running, React communicates with API)
 
 ---
 
