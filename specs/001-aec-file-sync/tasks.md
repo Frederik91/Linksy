@@ -43,10 +43,12 @@ This document breaks down the Linksy feature into granular, executable work item
   - Create automation script and validate resource creation in Azure Portal
   - **Effort**: 1 day
 
-- [ ] **T005** `[P1]` `[infra]` Configure Aspire AppHost to orchestrate all services
+- [x] **T005** `[P1]` `[infra]` Configure Aspire AppHost to orchestrate all services
   - Files: `src/Linksy.AppHost/AppHost.cs`
   - Add API, Sync Functions, React frontend, Azure Storage emulator to orchestration
   - **Effort**: 1 day
+  - **Completed**: 2025-10-26
+  - **Summary**: Configured Aspire 9.5.1 AppHost with all services: API (ASP.NET Core Minimal API with service defaults), Sync Functions (Azure Functions Worker with Durable Functions), React frontend (Vite + TypeScript + Tailwind), and Azure Storage emulator. Frontend receives VITE_API_URL and VITE_SYNC_URL environment variables. Services have proper dependencies configured (frontend waits for API and Functions). Dashboard runs on https://localhost:17296. Verified full build succeeds and AppHost starts successfully.
 
 ### Documentation & Contracts (4 tasks)
 
