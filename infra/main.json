@@ -1,0 +1,1145 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.38.33.27573",
+      "templateHash": "11535364794411623932"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "metadata": {
+        "description": "Environment name (dev, staging, prod)"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for resource deployment"
+      }
+    },
+    "appName": {
+      "type": "string",
+      "defaultValue": "linksy",
+      "metadata": {
+        "description": "Application name prefix for resource naming"
+      }
+    },
+    "namingSuffix": {
+      "type": "string",
+      "defaultValue": "[if(equals(parameters('environment'), 'prod'), '', format('-{0}', parameters('environment')))]",
+      "metadata": {
+        "description": "Resource naming suffix (derived from environment)"
+      }
+    },
+    "sqlAdminUsername": {
+      "type": "securestring",
+      "metadata": {
+        "description": "SQL Server administrator login username"
+      }
+    },
+    "sqlAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "SQL Server administrator login password (leave empty to auto-generate and store in Key Vault)"
+      }
+    },
+    "keyVaultAdminObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault administrator object ID (Azure AD user or service principal)"
+      }
+    },
+    "enableSecretProvisioning": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable automatic password generation via deployment script (recommended: true)"
+      }
+    },
+    "functionsPlanSku": {
+      "type": "string",
+      "defaultValue": "Y1",
+      "metadata": {
+        "description": "App Service Plan SKU for Functions (B1, B2, P1V2, etc.)"
+      }
+    },
+    "storageAccountTier": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "metadata": {
+        "description": "Storage account tier (Standard/Premium)"
+      }
+    },
+    "sqlMaxAutoPauseDelayInMinutes": {
+      "type": "int",
+      "defaultValue": 60,
+      "metadata": {
+        "description": "SQL Database max autoPause delay in minutes"
+      }
+    },
+    "sqlBackupRetentionDays": {
+      "type": "int",
+      "defaultValue": 7,
+      "metadata": {
+        "description": "SQL Database backup retention in days"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "environment": "[parameters('environment')]",
+        "application": "[parameters('appName')]",
+        "createdBy": "bicep",
+        "createdDate": "[utcNow('u')]"
+      },
+      "metadata": {
+        "description": "Tags to apply to all resources"
+      }
+    }
+  },
+  "variables": {
+    "storageAccountName": "[format('{0}stor{1}', replace(parameters('appName'), '-', ''), parameters('namingSuffix'))]",
+    "keyVaultName": "[format('{0}-kv{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "sqlServerName": "[format('{0}-sql{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "sqlDatabaseName": "[format('{0}-db{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "appInsightsName": "[format('{0}-ai{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "logAnalyticsName": "[format('{0}-law{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "functionAppName": "[format('{0}-func{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "functionsPlanName": "[format('{0}-plan{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "staticWebAppName": "[format('{0}-swa{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "userAssignedIdentityName": "[format('{0}-identity{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "vnetName": "[format('{0}-vnet{1}', parameters('appName'), parameters('namingSuffix'))]",
+    "containerTransientCache": "transient-cache",
+    "containerQuarantine": "quarantine",
+    "containerAuditExports": "audit-exports",
+    "queueNameManualHolds": "manual-holds",
+    "queueNamePoison": "[format('{0}-poison', variables('queueNameManualHolds'))]",
+    "actualSqlAdminPassword": "[if(empty(parameters('sqlAdminPassword')), uniqueString(resourceGroup().id, 'sql-pw'), parameters('sqlAdminPassword'))]"
+  },
+  "resources": {
+    "userAssignedIdentity": {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('userAssignedIdentityName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]"
+    },
+    "vnet": {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('vnetName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "default",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24",
+              "serviceEndpoints": [
+                {
+                  "service": "Microsoft.Storage"
+                },
+                {
+                  "service": "Microsoft.Sql"
+                },
+                {
+                  "service": "Microsoft.KeyVault"
+                }
+              ],
+              "delegations": [
+                {
+                  "name": "delegation",
+                  "properties": {
+                    "serviceName": "Microsoft.Web/serverFarms"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "sqlServer": {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[variables('sqlServerName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "administratorLogin": "[parameters('sqlAdminUsername')]",
+        "administratorLoginPassword": "[variables('actualSqlAdminPassword')]",
+        "version": "12.0",
+        "publicNetworkAccess": "Enabled",
+        "minimalTlsVersion": "1.2"
+      },
+      "dependsOn": [
+        "secretProvisioning"
+      ]
+    },
+    "sqlDatabase": {
+      "type": "Microsoft.Sql/servers/databases",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[format('{0}/{1}', variables('sqlServerName'), variables('sqlDatabaseName'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "GP_S_Gen5_1",
+        "tier": "GeneralPurpose",
+        "capacity": 1
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 34359738368,
+        "autoPauseDelay": "[parameters('sqlMaxAutoPauseDelayInMinutes')]",
+        "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+        "zoneRedundant": false,
+        "readScale": "Disabled",
+        "requestedBackupStorageRedundancy": "Geo",
+        "isLedgerOn": false
+      },
+      "dependsOn": [
+        "sqlServer"
+      ]
+    },
+    "sqlDatabaseBackupShortTermRetention": {
+      "type": "Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('sqlServerName'), variables('sqlDatabaseName'), 'default')]",
+      "properties": {
+        "retentionDays": "[parameters('sqlBackupRetentionDays')]",
+        "diffBackupIntervalInHours": 24
+      },
+      "dependsOn": [
+        "sqlDatabase"
+      ]
+    },
+    "sqlFirewallRuleAzureServices": {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[format('{0}/{1}', variables('sqlServerName'), 'AllowAzureServices')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "sqlServer"
+      ]
+    },
+    "storageAccount": {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-09-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "[format('{0}_LRS', parameters('storageAccountTier'))]"
+      },
+      "properties": {
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow",
+          "virtualNetworkRules": [
+            {
+              "id": "[format('{0}/subnets/default', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]",
+              "action": "Allow"
+            }
+          ],
+          "ipRules": []
+        }
+      },
+      "dependsOn": [
+        "vnet"
+      ]
+    },
+    "blobService": {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "properties": {
+        "changeFeed": {
+          "enabled": true,
+          "retentionInDays": 7
+        },
+        "deleteRetentionPolicy": {
+          "enabled": true,
+          "days": 7
+        }
+      },
+      "dependsOn": [
+        "storageAccount"
+      ]
+    },
+    "containerTransientCacheResource": {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('containerTransientCache'))]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "blobService"
+      ]
+    },
+    "storageAccountManagementPolicy": {
+      "type": "Microsoft.Storage/storageAccounts/managementPolicies",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "properties": {
+        "policy": {
+          "rules": [
+            {
+              "name": "DeleteTransientCacheAfter24Hours",
+              "enabled": true,
+              "type": "Lifecycle",
+              "definition": {
+                "actions": {
+                  "baseBlob": {
+                    "delete": {
+                      "daysAfterModificationGreaterThan": 1
+                    }
+                  },
+                  "snapshot": {
+                    "delete": {
+                      "daysAfterCreationGreaterThan": 1
+                    }
+                  }
+                },
+                "filters": {
+                  "blobTypes": [
+                    "blockBlob"
+                  ],
+                  "prefixMatch": [
+                    "[variables('containerTransientCache')]"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "DeleteQuarantineAfter7Days",
+              "enabled": true,
+              "type": "Lifecycle",
+              "definition": {
+                "actions": {
+                  "baseBlob": {
+                    "delete": {
+                      "daysAfterModificationGreaterThan": 7
+                    }
+                  },
+                  "snapshot": {
+                    "delete": {
+                      "daysAfterCreationGreaterThan": 7
+                    }
+                  }
+                },
+                "filters": {
+                  "blobTypes": [
+                    "blockBlob"
+                  ],
+                  "prefixMatch": [
+                    "[variables('containerQuarantine')]"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "storageAccount"
+      ]
+    },
+    "containerQuarantineResource": {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('containerQuarantine'))]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "blobService",
+        "containerTransientCacheResource"
+      ]
+    },
+    "containerAuditExportsResource": {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('containerAuditExports'))]",
+      "properties": {
+        "publicAccess": "None",
+        "immutableStorageWithVersioning": {
+          "enabled": true
+        }
+      },
+      "dependsOn": [
+        "blobService",
+        "containerQuarantineResource"
+      ]
+    },
+    "queueService": {
+      "type": "Microsoft.Storage/storageAccounts/queueServices",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "properties": {},
+      "dependsOn": [
+        "storageAccount"
+      ]
+    },
+    "queueManualHolds": {
+      "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('queueNameManualHolds'))]",
+      "properties": {},
+      "dependsOn": [
+        "queueService"
+      ]
+    },
+    "queuePoison": {
+      "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+      "apiVersion": "2021-09-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', variables('queueNamePoison'))]",
+      "properties": {},
+      "dependsOn": [
+        "queueService"
+      ]
+    },
+    "keyVault": {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "enabledForDeployment": false,
+        "enabledForTemplateDeployment": false,
+        "enabledForDiskEncryption": false,
+        "tenantId": "[subscription().tenantId]",
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "accessPolicies": [
+          {
+            "tenantId": "[subscription().tenantId]",
+            "objectId": "[parameters('keyVaultAdminObjectId')]",
+            "permissions": {
+              "keys": [
+                "get",
+                "list",
+                "create",
+                "delete",
+                "update",
+                "recover",
+                "purge"
+              ],
+              "secrets": [
+                "get",
+                "list",
+                "set",
+                "delete",
+                "recover",
+                "purge"
+              ],
+              "certificates": [
+                "get",
+                "list",
+                "create",
+                "delete",
+                "update",
+                "recover",
+                "purge"
+              ]
+            }
+          },
+          {
+            "tenantId": "[subscription().tenantId]",
+            "objectId": "[reference('userAssignedIdentity').principalId]",
+            "permissions": {
+              "secrets": [
+                "get",
+                "list"
+              ],
+              "keys": [
+                "get",
+                "list"
+              ]
+            }
+          }
+        ],
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow",
+          "virtualNetworkRules": [
+            {
+              "id": "[format('{0}/subnets/default', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            }
+          ],
+          "ipRules": []
+        }
+      },
+      "dependsOn": [
+        "userAssignedIdentity",
+        "vnet"
+      ]
+    },
+    "kvSecretSqlConnectionString": {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'SqlConnectionString')]",
+      "properties": {
+        "value": "[format('Server=tcp:{0},1433;Initial Catalog={1};Persist Security Info=False;User ID={2};Password={3};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;', reference('sqlServer').fullyQualifiedDomainName, variables('sqlDatabaseName'), parameters('sqlAdminUsername'), parameters('sqlAdminPassword'))]"
+      },
+      "dependsOn": [
+        "keyVault",
+        "sqlDatabase",
+        "sqlServer"
+      ]
+    },
+    "kvSecretStorageConnectionString": {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2021-11-01-preview",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'StorageConnectionString')]",
+      "properties": {
+        "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', variables('storageAccountName'), listKeys('storageAccount', '2021-09-01').keys[0].value)]"
+      },
+      "dependsOn": [
+        "keyVault",
+        "storageAccount"
+      ]
+    },
+    "logAnalyticsWorkspace": {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2021-12-01-preview",
+      "name": "[variables('logAnalyticsName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      }
+    },
+    "appInsights": {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "RetentionInDays": 30,
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      },
+      "dependsOn": [
+        "logAnalyticsWorkspace"
+      ]
+    },
+    "alertHighErrorRate": {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('{0}-high-error-rate', variables('appInsightsName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "description": "Alert when error rate exceeds 5%",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "enabled": true,
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "severity": 2,
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "Failed requests",
+              "metricName": "failedRequests",
+              "operator": "GreaterThan",
+              "threshold": 5,
+              "timeAggregation": "Total",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "appInsights"
+      ]
+    },
+    "alertSyncThrottling": {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('{0}-sync-throttling', variables('appInsightsName'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "description": "Alert when sync jobs are throttled",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "enabled": true,
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "severity": 2,
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "Throttle events",
+              "metricName": "customMetrics",
+              "operator": "GreaterThan",
+              "threshold": 10,
+              "timeAggregation": "Total",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "appInsights"
+      ]
+    },
+    "functionsPlan": {
+      "condition": "[equals(parameters('functionsPlanSku'), 'Y1')]",
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('functionsPlanName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "properties": {}
+    },
+    "functionPlanPremium": {
+      "condition": "[not(equals(parameters('functionsPlanSku'), 'Y1'))]",
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('functionsPlanName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "app",
+      "sku": {
+        "name": "[parameters('functionsPlanSku')]",
+        "tier": "[parameters('functionsPlanSku')]"
+      },
+      "properties": {}
+    },
+    "functionApp": {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('functionAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('userAssignedIdentityName')))]": {}
+        }
+      },
+      "properties": {
+        "serverFarmId": "[if(equals(parameters('functionsPlanSku'), 'Y1'), resourceId('Microsoft.Web/serverfarms', variables('functionsPlanName')), resourceId('Microsoft.Web/serverfarms', variables('functionsPlanName')))]",
+        "siteConfig": {
+          "alwaysOn": false,
+          "linuxFxVersion": "DOTNET|8.0",
+          "use32BitWorkerProcess": false,
+          "http20Enabled": true,
+          "minTlsVersion": "1.2",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', variables('storageAccountName'), listKeys('storageAccount', '2021-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', variables('storageAccountName'), listKeys('storageAccount', '2021-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "linksyfunctioncontent"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "dotnet-isolated"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference('appInsights').InstrumentationKey]"
+            },
+            {
+              "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+              "value": "~3"
+            },
+            {
+              "name": "XDT_MicrosoftApplicationInsights_Mode",
+              "value": "recommended"
+            },
+            {
+              "name": "SqlConnectionString",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=SqlConnectionString)', variables('keyVaultName'))]"
+            },
+            {
+              "name": "StorageConnectionString",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=StorageConnectionString)', variables('keyVaultName'))]"
+            },
+            {
+              "name": "ENVIRONMENT",
+              "value": "[parameters('environment')]"
+            }
+          ]
+        },
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "appInsights",
+        "functionPlanPremium",
+        "functionsPlan",
+        "keyVault",
+        "storageAccount",
+        "userAssignedIdentity"
+      ]
+    },
+    "functionAppConfig": {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/{1}', variables('functionAppName'), 'web')]",
+      "properties": {
+        "numberOfWorkers": 1,
+        "defaultDocuments": [],
+        "netFrameworkVersion": "v6.0",
+        "requestTracingEnabled": false,
+        "remoteDebuggingEnabled": false,
+        "httpLoggingEnabled": false,
+        "detailedErrorLoggingEnabled": false,
+        "publishingUsername": "[format('.{0}', variables('functionAppName'))]",
+        "scmType": "None",
+        "use32BitWorkerProcess": false,
+        "webSocketsEnabled": false,
+        "managedPipelineMode": "Integrated",
+        "virtualApplications": [
+          {
+            "virtualPath": "/",
+            "physicalPath": "site\\wwwroot",
+            "preloadEnabled": false
+          }
+        ],
+        "loadBalancing": "LeastRequests",
+        "experiments": {
+          "rampUpRules": []
+        },
+        "autoHealEnabled": true,
+        "autoHealRules": {
+          "triggers": {
+            "statusCodes": [
+              {
+                "status": 500,
+                "subStatus": 0,
+                "count": 50,
+                "timeInterval": "00:01:00"
+              }
+            ]
+          },
+          "actions": {
+            "actionType": "Recycle",
+            "minProcessExecutionTime": "00:01:00"
+          }
+        },
+        "cors": {
+          "allowedOrigins": [
+            "http://localhost:5173",
+            "http://localhost:3000"
+          ],
+          "supportCredentials": true
+        },
+        "localMySqlEnabled": false,
+        "ipSecurityRestrictions": [
+          {
+            "ipAddress": "Any",
+            "action": "Allow",
+            "priority": 1,
+            "name": "Allow all",
+            "description": "Allow all access"
+          }
+        ],
+        "scmIpSecurityRestrictions": [
+          {
+            "ipAddress": "Any",
+            "action": "Allow",
+            "priority": 1,
+            "name": "Allow all",
+            "description": "Allow all access"
+          }
+        ],
+        "scmIpSecurityRestrictionsUseMain": false,
+        "http20Enabled": true,
+        "minTlsVersion": "1.2",
+        "scmMinTlsVersion": "1.2",
+        "preWarmedInstanceCount": 0,
+        "functionAppScaleLimit": 200,
+        "healthCheckPath": "/api/health",
+        "functionsRuntimeScaleMonitoringEnabled": true,
+        "websiteTimeZone": "UTC",
+        "minimumElasticInstanceCount": 0
+      },
+      "dependsOn": [
+        "functionApp"
+      ]
+    },
+    "staticWebApp": {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('staticWebAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard",
+        "tier": "Standard"
+      },
+      "properties": {
+        "provider": "GitHub",
+        "branch": "main",
+        "buildProperties": {
+          "appLocation": "src/frontend",
+          "outputLocation": "dist",
+          "appBuildCommand": "npm run build"
+        }
+      }
+    },
+    "roleAssignmentKeyVault": {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('userAssignedIdentityName')), 'Key Vault Secrets User')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+        "principalId": "[reference('userAssignedIdentity').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "keyVault",
+        "userAssignedIdentity"
+      ]
+    },
+    "roleAssignmentStorage": {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('userAssignedIdentityName')), 'Storage Blob Data Contributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference('userAssignedIdentity').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "storageAccount",
+        "userAssignedIdentity"
+      ]
+    },
+    "roleAssignmentFunctionKeyVault": {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Key Vault Secrets User')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+        "principalId": "[reference('functionApp', '2022-09-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "functionApp",
+        "keyVault"
+      ]
+    },
+    "secretProvisioning": {
+      "condition": "[parameters('enableSecretProvisioning')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "secret-provisioning",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
+          },
+          "secretName": {
+            "value": "SqlAdminPassword"
+          },
+          "rotate": {
+            "value": false
+          },
+          "secretDescription": {
+            "value": "SQL Server admin password (auto-generated by deployment script)"
+          },
+          "managedIdentityName": {
+            "value": "[format('{0}-secret-provisioner{1}', parameters('appName'), parameters('namingSuffix'))]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.38.33.27573",
+              "templateHash": "14402402205657807691"
+            }
+          },
+          "parameters": {
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Key Vault name to store secrets in"
+              }
+            },
+            "secretName": {
+              "type": "string",
+              "defaultValue": "SqlAdminPassword",
+              "metadata": {
+                "description": "The secret name to create/rotate (e.g., SqlAdminPassword)"
+              }
+            },
+            "rotate": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "If true, regenerate secret on every deploy; if false, only create if missing"
+              }
+            },
+            "secretDescription": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Secret description for Key Vault metadata"
+              }
+            },
+            "managedIdentityName": {
+              "type": "string",
+              "defaultValue": "linksy-secret-provisioner",
+              "metadata": {
+                "description": "Deployment script managed identity name"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {
+                "purpose": "secret-provisioning",
+                "createdBy": "bicep-deployment-script"
+              },
+              "metadata": {
+                "description": "Tags to apply to resources created here"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[parameters('managedIdentityName')]",
+              "location": "[resourceGroup().location]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), 'kv-secrets-officer')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2023-08-01",
+              "name": "[format('generate-{0}', parameters('secretName'))]",
+              "location": "[resourceGroup().location]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')))]": {}
+                }
+              },
+              "kind": "AzurePowerShell",
+              "properties": {
+                "azPowerShellVersion": "11.0",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D",
+                "timeout": "PT5M",
+                "arguments": "[format('-VaultName \"{0}\" -SecretName \"{1}\" -Rotate {2} -Description \"{3}\"', parameters('keyVaultName'), parameters('secretName'), parameters('rotate'), parameters('secretDescription'))]",
+                "scriptContent": "param(\n  [string] $VaultName,\n  [string] $SecretName,\n  [bool]   $Rotate,\n  [string] $Description\n)\n\n# Authenticate using this script's managed identity\nConnect-AzAccount -Identity -ErrorAction Stop | Out-Null\n\n# Check if secret already exists and rotation is disabled\n$existing = Get-AzKeyVaultSecret -VaultName $VaultName -Name $SecretName -ErrorAction SilentlyContinue\nif ($existing -and -not $Rotate) {\n  Write-Host \"Secret '$SecretName' already exists and rotation is disabled. Skipping generation.\"\n  return\n}\n\n# Character sets for password generation\n$uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'\n$lowercase = 'abcdefghijklmnopqrstuvwxyz'\n$digits = '0123456789'\n$symbols = '@$!%*?&'\n$allChars = ($uppercase + $lowercase + $digits + $symbols).ToCharArray()\n\n# Function to generate random string from character set\nfunction GenerateRandomString {\n  param(\n    [char[]]$CharSet,\n    [int]$Length\n  )\n  $randomBytes = New-Object byte[] $Length\n  [System.Security.Cryptography.RandomNumberGenerator]::Fill($randomBytes)\n  $result = @()\n  foreach ($byte in $randomBytes) {\n    $result += $CharSet[$byte % $CharSet.Count]\n  }\n  return -join $result\n}\n\n# Generate password with guaranteed complexity:\n# - 2 uppercase letters\n# - 6 lowercase letters\n# - 6 digits\n# - 2 symbols\n# - 8 random characters (any type)\n$pwd = `\n  (GenerateRandomString $uppercase.ToCharArray() 2) + `\n  (GenerateRandomString $lowercase.ToCharArray() 6) + `\n  (GenerateRandomString $digits.ToCharArray() 6) + `\n  (GenerateRandomString $symbols.ToCharArray() 2) + `\n  (GenerateRandomString $allChars 8)\n\n# Shuffle the password to avoid predictable patterns\n$pwd = -join ($pwd.ToCharArray() | Get-Random -Count $pwd.Length)\n\n# Store in Key Vault as a secure string\n$securePassword = ConvertTo-SecureString -String $pwd -AsPlainText -Force\nSet-AzKeyVaultSecret -VaultName $VaultName -Name $SecretName -SecretValue $securePassword -Tags @{ 'description' = $Description } -ErrorAction Stop | Out-Null\n\nWrite-Host \"Secret '$SecretName' successfully generated and stored in Key Vault '$VaultName'.\"\n"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]",
+                "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), 'kv-secrets-officer'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "provisionerIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the provisioner managed identity"
+              },
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+            },
+            "provisionerPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the provisioner managed identity (for RBAC assignments)"
+              },
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]"
+            },
+            "deploymentScriptId": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment script resource ID"
+              },
+              "value": "[resourceId('Microsoft.Resources/deploymentScripts', format('generate-{0}', parameters('secretName')))]"
+            },
+            "secretName": {
+              "type": "string",
+              "metadata": {
+                "description": "Secret name that was provisioned"
+              },
+              "value": "[parameters('secretName')]"
+            },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault name where secret was stored"
+              },
+              "value": "[parameters('keyVaultName')]"
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputs": {
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource Group name"
+      },
+      "value": "[resourceGroup().name]"
+    },
+    "sqlServerFqdn": {
+      "type": "string",
+      "metadata": {
+        "description": "SQL Server FQDN"
+      },
+      "value": "[reference('sqlServer').fullyQualifiedDomainName]"
+    },
+    "sqlDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "SQL Database name"
+      },
+      "value": "[variables('sqlDatabaseName')]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account name"
+      },
+      "value": "[variables('storageAccountName')]"
+    },
+    "storageConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Storage Account connection string"
+      },
+      "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net', variables('storageAccountName'), listKeys('storageAccount', '2021-09-01').keys[0].value)]"
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault URI"
+      },
+      "value": "[reference('keyVault').vaultUri]"
+    },
+    "appInsightsInstrumentationKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Application Insights instrumentation key"
+      },
+      "value": "[reference('appInsights').InstrumentationKey]"
+    },
+    "appInsightsConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Application Insights connection string"
+      },
+      "value": "[reference('appInsights').ConnectionString]"
+    },
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Functions App name"
+      },
+      "value": "[variables('functionAppName')]"
+    },
+    "staticWebAppUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Static Web App URL"
+      },
+      "value": "[reference('staticWebApp').defaultHostname]"
+    },
+    "userAssignedIdentityId": {
+      "type": "string",
+      "metadata": {
+        "description": "User Assigned Identity resource ID"
+      },
+      "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('userAssignedIdentityName'))]"
+    },
+    "logAnalyticsWorkspaceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics Workspace ID"
+      },
+      "value": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+    }
+  }
+}

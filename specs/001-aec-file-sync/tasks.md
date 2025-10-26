@@ -31,10 +31,12 @@ This document breaks down the Linksy feature into granular, executable work item
   - **Completed**: 2025-10-25
   - **Summary**: Created local.settings.json, host.json, and Program.cs for Linksy.Sync; Updated Linksy.AppHost to use AddAzureFunctionsProject with Aspire orchestration; Configured Azure Storage emulator integration
 
-- [ ] **T003** `[P1]` `[infra]` Add Bicep IaC templates for Azure infrastructure (Dev/Prod)
+- [x] **T003** `[P1]` `[infra]` Add Bicep IaC templates for Azure infrastructure (Dev/Prod)
   - Files: `infra/main.bicep`, `infra/parameters.dev.json`, `infra/parameters.prod.json`
   - Create parameterized Bicep for SQL Serverless, Storage, Key Vault, App Insights, Static Web Apps
   - **Effort**: 1.5 days
+  - **Completed**: 2025-10-26
+  - **Summary**: Created comprehensive Bicep template with all Azure resources (SQL Serverless, Storage with lifecycle policies, Key Vault, App Insights, Functions, Static Web App, VNET, Managed Identity, RBAC); Created dev/prod parameter files with environment-specific configurations; Validated Bicep syntax; Updated infrastructure README
 
 - [ ] **T004** `[P1]` `[infra]` Deploy IaC to Dev environment
   - Files: `scripts/deploy-infra.sh`
