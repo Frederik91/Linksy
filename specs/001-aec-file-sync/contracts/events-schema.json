@@ -1,0 +1,592 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Linksy Event and Audit Schema",
+  "description": "JSON schemas for all event types: sync events, audit entries, and state changes",
+  "type": "object",
+
+  "definitions": {
+    "BaseEvent": {
+      "type": "object",
+      "required": ["eventType", "eventId", "timestamp", "tenantId"],
+      "properties": {
+        "eventType": {
+          "type": "string",
+          "description": "Event type identifier (e.g., 'sync.job.created', 'audit.entry')"
+        },
+        "eventId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique event identifier (prevents replay and deduplication)"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp of event occurrence (server time)"
+        },
+        "tenantId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Tenant ID for multi-tenant isolation"
+        }
+      }
+    },
+
+    "SyncJobCreatedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["bindingId", "triggeredBy"],
+          "properties": {
+            "eventType": {
+              "const": "sync.job.created"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID of the binding being synced"
+            },
+            "syncJobId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Newly created sync job ID"
+            },
+            "triggeredBy": {
+              "type": "string",
+              "enum": ["SCHEDULE", "MANUAL", "CREDENTIAL_ROTATION", "HOLD_EXPIRY", "WEBHOOK"],
+              "description": "What triggered this sync"
+            }
+          }
+        }
+      ]
+    },
+
+    "SyncJobCompletedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["bindingId", "syncJobId", "status"],
+          "properties": {
+            "eventType": {
+              "const": "sync.job.completed"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "syncJobId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["success", "partial", "failed"],
+              "description": "Final status of the sync job"
+            },
+            "stats": {
+              "type": "object",
+              "properties": {
+                "filesProcessed": {
+                  "type": "integer",
+                  "description": "Total files synced"
+                },
+                "bytesTransferred": {
+                  "type": "integer",
+                  "description": "Total bytes transferred"
+                },
+                "conflictCount": {
+                  "type": "integer",
+                  "description": "Number of conflicts detected"
+                },
+                "retryCount": {
+                  "type": "integer",
+                  "description": "Total retries due to transient errors"
+                },
+                "throttleCount": {
+                  "type": "integer",
+                  "description": "Number of 429 throttling events"
+                },
+                "errorCount": {
+                  "type": "integer",
+                  "description": "Number of permanent errors"
+                },
+                "durationSeconds": {
+                  "type": "number",
+                  "description": "Total execution time"
+                }
+              }
+            },
+            "errorMessage": {
+              "type": "string",
+              "nullable": true,
+              "description": "If status=failed, reason for failure"
+            }
+          }
+        }
+      ]
+    },
+
+    "ConflictDetectedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["bindingId", "syncJobId", "fileId", "conflictType", "conflictPolicy"],
+          "properties": {
+            "eventType": {
+              "const": "conflict.detected"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "syncJobId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "changeItemId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID of the conflicting change"
+            },
+            "fileId": {
+              "type": "string",
+              "description": "Platform file identifier"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "Full file path"
+            },
+            "conflictType": {
+              "type": "string",
+              "enum": ["simultaneous_edit", "delete_vs_update", "version_mismatch"],
+              "description": "Type of conflict"
+            },
+            "conflictPolicy": {
+              "type": "string",
+              "enum": ["SOURCE_WINS", "TARGET_WINS", "LAST_WRITER_WINS", "MANUAL_HOLD"],
+              "description": "Policy configured for this binding"
+            },
+            "sourceVersion": {
+              "type": "string",
+              "description": "Version ID from source platform"
+            },
+            "targetVersion": {
+              "type": "string",
+              "nullable": true,
+              "description": "Version ID from target platform (if exists)"
+            },
+            "sourceModifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Last modification time on source"
+            },
+            "targetModifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true,
+              "description": "Last modification time on target"
+            },
+            "resolution": {
+              "type": "object",
+              "nullable": true,
+              "properties": {
+                "policy": {
+                  "type": "string",
+                  "description": "Which policy was applied"
+                },
+                "winner": {
+                  "type": "string",
+                  "enum": ["SOURCE", "TARGET"],
+                  "description": "Which version won"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Human-readable reason (e.g., 'Source is newer by 5 minutes')"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "ConflictResolvedEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["changeItemId", "resolvedBy", "chosenSource"],
+          "properties": {
+            "eventType": {
+              "const": "conflict.resolved"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "changeItemId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "resolvedBy": {
+              "type": "string",
+              "enum": ["OPERATOR", "POLICY", "EXPIRY"],
+              "description": "Who/what resolved the conflict"
+            },
+            "operatorId": {
+              "type": "string",
+              "nullable": true,
+              "description": "If resolvedBy=OPERATOR, the user ID"
+            },
+            "chosenSource": {
+              "type": "string",
+              "enum": ["ACC_DOCS", "SHAREPOINT"],
+              "description": "Which platform version was chosen"
+            }
+          }
+        }
+      ]
+    },
+
+    "AuditEntry": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["actor", "actionType", "outcome"],
+          "properties": {
+            "eventType": {
+              "const": "audit.entry"
+            },
+            "id": {
+              "type": "integer",
+              "description": "Immutable sequential ID for audit chain"
+            },
+            "actor": {
+              "type": "string",
+              "description": "User ID or 'system' for automated actions"
+            },
+            "actionType": {
+              "type": "string",
+              "enum": [
+                "BINDING_CREATED",
+                "BINDING_UPDATED",
+                "BINDING_ACTIVATED",
+                "BINDING_PAUSED",
+                "BINDING_DELETED",
+                "SYNC_JOB_STARTED",
+                "SYNC_JOB_COMPLETED",
+                "CHANGE_APPLIED",
+                "CONFLICT_DETECTED",
+                "CONFLICT_ESCALATED_MANUAL_HOLD",
+                "CONFLICT_RESOLVED",
+                "CONNECTOR_REGISTERED",
+                "CONNECTOR_CREDENTIALS_ROTATED",
+                "FILE_QUARANTINED",
+                "FILE_RESTORED",
+                "AUDIT_EXPORTED",
+                "CONNECTOR_VALIDATED"
+              ],
+              "description": "Type of action performed"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true,
+              "description": "Binding affected by this action (if applicable)"
+            },
+            "syncJobId": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true,
+              "description": "Sync job associated with this action (if applicable)"
+            },
+            "changeItemId": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true,
+              "description": "Change item affected by this action (if applicable)"
+            },
+            "context": {
+              "type": "object",
+              "description": "Additional context (varies by actionType)",
+              "additionalProperties": {},
+              "examples": [
+                {
+                  "conflictPolicy": "SourceWins",
+                  "direction": "ONE_WAY",
+                  "scheduleCadence": "HOURLY"
+                },
+                {
+                  "filePath": "/Projects/design.dwg",
+                  "fileSize": 2048000,
+                  "conflictType": "simultaneous_edit"
+                },
+                {
+                  "fromVersion": "v1",
+                  "toVersion": "v2",
+                  "reason": "File timestamp on source newer than target"
+                }
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "enum": ["success", "failure", "escalated"],
+              "description": "Result of the action"
+            },
+            "errorDetails": {
+              "type": "string",
+              "nullable": true,
+              "description": "If outcome=failure, error message"
+            },
+            "previousEntryHash": {
+              "type": "string",
+              "description": "SHA256 hash of previous audit entry (for chain integrity)"
+            },
+            "entryHash": {
+              "type": "string",
+              "description": "SHA256 hash of this entry (includes all fields except signatures)"
+            }
+          }
+        }
+      ]
+    },
+
+    "CredentialRotationEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["connectorId", "status"],
+          "properties": {
+            "eventType": {
+              "const": "credential.rotation"
+            },
+            "connectorId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["initiated", "validating", "success", "failed", "rolled_back"],
+              "description": "Current status of rotation process"
+            },
+            "triggeredBy": {
+              "type": "string",
+              "description": "User ID who triggered rotation"
+            },
+            "affectedBindingCount": {
+              "type": "integer",
+              "description": "Number of bindings using this connector"
+            },
+            "pausedJobCount": {
+              "type": "integer",
+              "description": "Number of jobs paused during rotation"
+            },
+            "errorMessage": {
+              "type": "string",
+              "nullable": true,
+              "description": "If status=failed, reason for failure"
+            }
+          }
+        }
+      ]
+    },
+
+    "QuarantineEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["bindingId", "fileId", "reason"],
+          "properties": {
+            "eventType": {
+              "const": "quarantine.item_moved"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "changeItemId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "fileId": {
+              "type": "string",
+              "description": "File identifier"
+            },
+            "filePath": {
+              "type": "string",
+              "description": "File path"
+            },
+            "reason": {
+              "type": "string",
+              "enum": ["conflict", "soft_delete", "expiry"],
+              "description": "Why file was quarantined"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When quarantine expires (7 days from now)"
+            }
+          }
+        }
+      ]
+    },
+
+    "QuarantineRestoreEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["bindingId", "changeItemId", "restoreInitiatedBy"],
+          "properties": {
+            "eventType": {
+              "const": "quarantine.item_restored"
+            },
+            "bindingId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "changeItemId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "restoreInitiatedBy": {
+              "type": "string",
+              "description": "User ID who initiated restoration"
+            },
+            "syncJobId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Sync job ID for re-syncing the file"
+            }
+          }
+        }
+      ]
+    },
+
+    "ExportAuditEvent": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/BaseEvent"
+        },
+        {
+          "type": "object",
+          "required": ["exportInitiatedBy", "exportedEntryCount"],
+          "properties": {
+            "eventType": {
+              "const": "audit.exported"
+            },
+            "exportInitiatedBy": {
+              "type": "string",
+              "description": "User ID requesting the export"
+            },
+            "exportedEntryCount": {
+              "type": "integer",
+              "description": "Number of audit entries included in export"
+            },
+            "format": {
+              "type": "string",
+              "enum": ["csv", "json"],
+              "description": "Export format"
+            },
+            "fromDate": {
+              "type": "string",
+              "format": "date",
+              "nullable": true,
+              "description": "Start of date range (if filtered)"
+            },
+            "toDate": {
+              "type": "string",
+              "format": "date",
+              "nullable": true,
+              "description": "End of date range (if filtered)"
+            },
+            "blobStorageUrl": {
+              "type": "string",
+              "description": "Path in Azure Blob Storage where export was stored (audit-exports container)"
+            }
+          }
+        }
+      ]
+    }
+  },
+
+  "examples": [
+    {
+      "eventType": "sync.job.completed",
+      "eventId": "550e8400-e29b-41d4-a716-446655440000",
+      "timestamp": "2025-10-25T14:35:22.456Z",
+      "tenantId": "d3de24a2-1234-5678-abcd-ef0123456789",
+      "bindingId": "b1234567-abcd-ef01-2345-6789abcdef01",
+      "syncJobId": "s9876543-2109-8765-4321-0987654321fe",
+      "status": "success",
+      "stats": {
+        "filesProcessed": 42,
+        "bytesTransferred": 5242880,
+        "conflictCount": 1,
+        "retryCount": 3,
+        "throttleCount": 0,
+        "errorCount": 0,
+        "durationSeconds": 245.5
+      }
+    },
+    {
+      "eventType": "conflict.detected",
+      "eventId": "660e8400-e29b-41d4-a716-446655440001",
+      "timestamp": "2025-10-25T14:36:00.000Z",
+      "tenantId": "d3de24a2-1234-5678-abcd-ef0123456789",
+      "bindingId": "b1234567-abcd-ef01-2345-6789abcdef01",
+      "syncJobId": "s9876543-2109-8765-4321-0987654321fe",
+      "changeItemId": "c5555555-6666-7777-8888-999999999999",
+      "fileId": "acc-docs-item-12345",
+      "filePath": "/Projects/Building-A/design-v1.dwg",
+      "conflictType": "simultaneous_edit",
+      "conflictPolicy": "MANUAL_HOLD",
+      "sourceVersion": "acc-v2-xyz123",
+      "targetVersion": "sp-v1-abc456",
+      "sourceModifiedAt": "2025-10-25T14:30:00.000Z",
+      "targetModifiedAt": "2025-10-25T14:29:00.000Z"
+    },
+    {
+      "eventType": "audit.entry",
+      "eventId": "770e8400-e29b-41d4-a716-446655440002",
+      "timestamp": "2025-10-25T14:36:15.789Z",
+      "tenantId": "d3de24a2-1234-5678-abcd-ef0123456789",
+      "id": 12345,
+      "actor": "user@company.com",
+      "actionType": "CONFLICT_ESCALATED_MANUAL_HOLD",
+      "bindingId": "b1234567-abcd-ef01-2345-6789abcdef01",
+      "syncJobId": "s9876543-2109-8765-4321-0987654321fe",
+      "changeItemId": "c5555555-6666-7777-8888-999999999999",
+      "context": {
+        "filePath": "/Projects/Building-A/design-v1.dwg",
+        "conflictType": "simultaneous_edit",
+        "sourceModifiedAt": "2025-10-25T14:30:00.000Z",
+        "targetModifiedAt": "2025-10-25T14:29:00.000Z"
+      },
+      "outcome": "success",
+      "previousEntryHash": "abc123def456789abc123def456789abc123def456789abc123def456789ab",
+      "entryHash": "def456789abc123def456789abc123def456789abc123def456789abc123de"
+    }
+  ]
+}

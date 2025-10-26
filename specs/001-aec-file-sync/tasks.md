@@ -52,25 +52,33 @@ This document breaks down the Linksy feature into granular, executable work item
 
 ### Documentation & Contracts (4 tasks)
 
-- [ ] **T006** `[P1]` `[docs]` Document API contract (OpenAPI/Swagger spec)
+- [x] **T006** `[P1]` `[docs]` Document API contract (OpenAPI/Swagger spec)
   - File: `specs/001-aec-file-sync/contracts/api-spec.yaml`
   - Define all endpoint groups and request/response models
   - **Effort**: 1 day
+  - **Completed**: 2025-10-26
+  - **Summary**: Comprehensive OpenAPI 3.0 specification with all endpoint groups (Health, Tenants, Connectors, Bindings, Jobs, Conflicts, Quarantine, Credentials, Audit, Metrics). Includes request/response schemas, security scheme (JWT Bearer), and examples for all major workflows (onboarding, sync management, conflict resolution, audit export, credential rotation)
 
-- [ ] **T007** `[P1]` `[docs]` Define Connector interface contract
+- [x] **T007** `[P1]` `[docs]` Define Connector interface contract
   - File: `specs/001-aec-file-sync/contracts/connector-spec.md`
   - Document IConnector interface and change item schema
   - **Effort**: 0.5 day
+  - **Completed**: 2025-10-26
+  - **Summary**: Defined IConnector interface with 7 core methods (GetChangesAsync, UploadFileAsync, DeleteFileAsync, ValidateCredentialsAsync, GetServerTimeAsync, DownloadFileAsync). Documented FileMetadata, ChangeItem, DeltaQueryResult, and CredentialValidation models. Included error handling strategies (ConnectorException, ChangeConflictException, InsufficientPermissionsException, TemporaryException, InvalidCredentialsException). Provided AccDocsConnector and SharePointConnector implementation details with rate-limiting and retry specifications. Included mock connector for testing and integration test examples.
 
-- [ ] **T008** `[P1]` `[docs]` Document event and audit schema
+- [x] **T008** `[P1]` `[docs]` Document event and audit schema
   - File: `specs/001-aec-file-sync/contracts/events-schema.json`
   - Define JSON schemas for all event types
   - **Effort**: 0.5 day
+  - **Completed**: 2025-10-26
+  - **Summary**: Comprehensive JSON Schema (Draft-7) covering 11 event types: SyncJobCreatedEvent, SyncJobCompletedEvent, ConflictDetectedEvent, ConflictResolvedEvent, AuditEntry, CredentialRotationEvent, QuarantineEvent, QuarantineRestoreEvent, ExportAuditEvent. Each event includes base properties (eventType, eventId, timestamp, tenantId) and detailed event-specific fields. Included audit entry hash chain fields for immutability verification. Provided examples for job completion, conflict detection, and audit entries.
 
-- [ ] **T009** `[P1]` `[docs]` Create Phase 0 research notes
+- [x] **T009** `[P1]` `[docs]` Create Phase 0 research notes
   - File: `specs/001-aec-file-sync/research.md`
   - Document technology decisions and POC links
   - **Effort**: 1 day
+  - **Completed**: 2025-10-26
+  - **Summary**: Comprehensive Phase 0 research document covering 8 research tasks: (1) Credential Vault & Encryption (per-tenant AES + Azure KeyVault), (2) Connector Implementation Pattern (OAuth2 + delta tokens + IConnector), (3) Database Schema for Audit Immutability (append-only table + HMAC chain), (4) Conflict Resolution & Oscillation Prevention (5-min binding-level hold), (5) Rate-Limit Retry & Backoff (exponential 1s-40s, 7 retries, 120s total), (6) Webhook Validation & Delta Polling Fallback (HMAC + 15-min recovery), (7) JWT Authentication (HttpOnly cookies + refresh), (8) Multi-Tenant RBAC (tenant-scoped role assignments). All research tasks resolved with no blockers.
 
 ---
 
