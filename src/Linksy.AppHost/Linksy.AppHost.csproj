@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Linksy.Api\Linksy.Api.csproj" />
+    <ProjectReference Include="..\Linksy.Migrations\Linksy.Migrations.csproj" />
   </ItemGroup>
 
 </Project>

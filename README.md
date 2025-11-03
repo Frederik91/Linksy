@@ -34,7 +34,7 @@ Before you begin, ensure you have the following installed:
   - Manages Node.js versions automatically via `.nvmrc` file
   - [Installation guide](https://github.com/nvm-sh/nvm)
 
-## Quick Start (15 minutes)
+## Quick Start (5 minutes)
 
 ### 1. Clone and Setup
 
@@ -50,68 +50,124 @@ cd Linksy
 ```
 
 The setup script will:
-- ✅ Verify .NET 8 SDK installation
+- ✅ Verify .NET 9 SDK installation
 - ✅ Verify Node.js 22 LTS installation
-- ✅ Restore .NET dependencies (`dotnet restore`)
-- ✅ Install npm packages (`npm install`)
+- ✅ Verify Docker Desktop is running
+- ✅ Restore .NET dependencies
+- ✅ Install npm packages
 
 ### 2. Start the Application
 
 ```bash
-# Start the full stack with Aspire orchestration
+cd src
 dotnet run --project Linksy.AppHost
 ```
 
+**What happens automatically:**
+1. PostgreSQL container starts
+2. Database migrations are applied
+3. API backend starts
+4. React frontend starts
+5. Aspire Dashboard opens
+
 ### 3. Access the Application
 
-Once started, the following services are available:
+Once started (wait ~10 seconds), access:
 
 - **Frontend**: http://localhost:5173
-- **API Health**: http://localhost:5000/health
+- **API**: http://localhost:5000/api/info
 - **Aspire Dashboard**: http://localhost:15217
 
-> **Note**: Wait ~5 seconds for all services to initialize. Check the Aspire Dashboard for health status.
+> **📖 New to the project?** See [DEVELOPER_SETUP.md](./DEVELOPER_SETUP.md) for detailed setup instructions, troubleshooting, and development workflows.
 
 ## Project Structure
 
 ```
 Linksy/
-├── Linksy.AppHost/                    # Aspire orchestration host
-│   ├── AppHost.cs                     # Service orchestration
-│   └── Linksy.AppHost.csproj
-│
-├── Linksy.Api/                        # .NET 8 Web API backend
-│   ├── Program.cs                     # Minimal API configuration
-│   ├── appsettings.json              # Configuration
-│   └── Linksy.Api.csproj
-│
-├── Linksy.Api.Tests/                  # xUnit tests for API
-│   ├── HealthCheckTests.cs
-│   └── Linksy.Api.Tests.csproj
-│
-├── Linksy.ServiceDefaults/            # Aspire service defaults
-│   └── Linksy.ServiceDefaults.csproj
-│
-├── src/frontend/                          # React + Vite frontend (moved under src/)
-│   ├── src/
-│   │   ├── components/                # React components
-│   │   ├── lib/                       # Utility functions
-│   │   ├── App.tsx                    # Root component
-│   │   ├── main.tsx                   # Entry point
-│   │   └── index.css                  # Tailwind CSS
-│   ├── package.json
-│   ├── tsconfig.json                  # TypeScript config
-│   ├── vite.config.ts                 # Vite config
-│   └── tailwind.config.ts             # Tailwind CSS config
+├── src/
+│   ├── Linksy.AppHost/                # 🎯 Aspire orchestrator (START HERE)
+│   │   ├── AppHost.cs                 # Service orchestration & startup order
+│   │   └── Linksy.AppHost.csproj
+│   │
+│   ├── Linksy.Migrations/             # 🗄️ Database migration service
+│   │   ├── MigrationService.cs        # Automatic schema updates on startup
+│   │   └── Program.cs
+│   │
+│   ├── Linksy.Api/                    # 🌐 .NET 9 Web API backend
+│   │   ├── Data/                      # EF Core DbContext & migrations
+│   │   ├── DTOs/                      # API data transfer objects
+│   │   ├── Endpoints/                 # Minimal API endpoints
+│   │   ├── Models/                    # Domain entities
+│   │   ├── Program.cs                 # API configuration
+│   │   └── Linksy.Api.csproj
+│   │
+│   ├── Linksy.Api.Tests/              # 🧪 xUnit tests for API
+│   │   └── Linksy.Api.Tests.csproj
+│   │
+│   ├── Linksy.ServiceDefaults/        # ⚙️ Aspire service defaults
+│   │   └── Linksy.ServiceDefaults.csproj
+│   │
+│   ├── frontend/                      # ⚛️ React 19 + TypeScript frontend
+│   │   ├── src/
+│   │   │   ├── components/            # React components
+│   │   │   ├── lib/                   # API client & utilities
+│   │   │   ├── pages/                 # Dashboard, Onboarding
+│   │   │   ├── types/                 # TypeScript definitions
+│   │   │   ├── App.tsx                # Root component with routing
+│   │   │   └── main.tsx               # Entry point
+│   │   ├── package.json
+│   │   ├── vite.config.ts             # Vite config
+│   │   └── tailwind.config.ts         # Tailwind CSS config
+│   │
+│   └── Linksy.sln                     # Visual Studio solution
 │
 ├── scripts/
 │   ├── setup.sh                       # Setup script (macOS/Linux)
 │   ├── setup.ps1                      # Setup script (Windows)
-│   └── verify-prereqs.sh              # Prerequisite checker
+│   ├── add-migration.sh               # Create EF Core migrations
+│   └── add-migration.ps1              # (Windows version)
 │
-├── Linksy.sln                         # Visual Studio solution
+├── specs/                             # Feature specifications
+│   └── 001-aec-file-sync/             # AEC File Sync platform spec
+│
 ├── README.md                          # This file
+├── DEVELOPER_SETUP.md                 # Detailed developer guide
 └── .gitignore
+```
+
+### Startup Flow
+
+When you run `dotnet run --project Linksy.AppHost`:
+
+```
+┌─────────────────────────────────────────────┐
+│         Aspire AppHost (Orchestrator)       │
+└─────────────────────────────────────────────┘
+                     │
+        ┌────────────┴────────────┐
+        ▼                         ▼
+┌──────────────┐         ┌──────────────────┐
+│  PostgreSQL  │         │   Dependencies   │
+│  Container   │         │    (NPM, etc)    │
+└──────┬───────┘         └──────────────────┘
+       │
+       ▼
+┌──────────────────┐
+│   Migrations     │  ◄─── Runs first, applies schema
+│     Service      │       Exits after completion
+└────────┬─────────┘
+         │
+         ▼
+    ┌────────────────┐
+    │   .NET API     │  ◄─── Waits for migrations
+    │   Backend      │       Serves REST endpoints
+    └────────┬───────┘
+             │
+             ▼
+        ┌────────────────┐
+        │ React Frontend │  ◄─── Waits for API
+        │   (Vite HMR)   │       Auto-refreshes on change
+        └────────────────┘
 ```
 
 ## Development Workflow
