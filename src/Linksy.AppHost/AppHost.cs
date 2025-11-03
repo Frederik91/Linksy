@@ -1,6 +1,12 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddProject("api", @"../Linksy.Api/Linksy.Api.csproj");
+// Add PostgreSQL database
+var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume()
+    .AddDatabase("linksydb");
+
+var api = builder.AddProject<Projects.Linksy_Api>("api")
+    .WithReference(postgres);
 
 var frontend = builder.AddNpmApp("frontend", @"../frontend")
     .WithReference(api)

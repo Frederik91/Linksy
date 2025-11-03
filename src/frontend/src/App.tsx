@@ -1,6 +1,9 @@
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import Dashboard from './pages/Dashboard';
+import Onboarding from './pages/Onboarding';
 
-export default function App() {
+function Home() {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleFetchInfo = async () => {
@@ -30,7 +33,7 @@ export default function App() {
             <div>
               <h2 className="text-2xl font-bold text-white mb-2">Welcome to Linksy</h2>
               <p className="text-slate-300">
-                This is your React frontend application integrated with Aspire orchestration.
+                Seamlessly synchronize files between Autodesk Construction Cloud and SharePoint.
               </p>
             </div>
 
@@ -42,11 +45,18 @@ export default function App() {
             </div>
 
             <div className="flex gap-4">
-              <Button onClick={handleFetchInfo} className="bg-blue-600 hover:bg-blue-700">
-                Fetch API Info
-              </Button>
-              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
-                Learn More
+              <Link to="/onboarding">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  Get Started
+                </Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                  View Dashboard
+                </Button>
+              </Link>
+              <Button onClick={handleFetchInfo} variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                Test API
               </Button>
             </div>
           </div>
@@ -55,29 +65,41 @@ export default function App() {
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="text-2xl font-bold text-blue-400 mb-2">⚙️</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Fully Configured</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">Automated Sync</h3>
             <p className="text-slate-400 text-sm">
-              React 19, TypeScript, Vite, Tailwind CSS, and shadcn/ui components.
+              Schedule automatic synchronization between ACC Docs and SharePoint.
             </p>
           </div>
 
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="text-2xl font-bold text-green-400 mb-2">🚀</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Fast Development</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">Conflict Resolution</h3>
             <p className="text-slate-400 text-sm">
-              Hot Module Replacement (HMR) enables instant feedback during development.
+              Multiple policies to handle file conflicts intelligently.
             </p>
           </div>
 
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="text-2xl font-bold text-purple-400 mb-2">🔗</div>
-            <h3 className="text-lg font-semibold text-white mb-2">Orchestrated</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">Audit Trail</h3>
             <p className="text-slate-400 text-sm">
-              Integrated with .NET Aspire for unified local development experience.
+              Complete audit logging for compliance and accountability.
             </p>
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
